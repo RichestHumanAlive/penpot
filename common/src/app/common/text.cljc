@@ -300,6 +300,7 @@
 
 (defn convert-to-draft
   [root]
+  (prn root)
   (letfn [(process-attr [children ranges [k v]]
             (loop [children (seq children)
                    start    nil
@@ -447,3 +448,7 @@
                         (d/enumerate)
                         (mapv (fn [[idx node]]
                                 (index-content node cur-path idx))))))))))
+
+(defn content-v1?
+  [content]
+  (= "root" (:type content)))

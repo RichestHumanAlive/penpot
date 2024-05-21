@@ -12,6 +12,13 @@
   span {
     line-height: inherit;
   }
+
+  &.v2 {
+    outline: none;
+    user-select: text;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
 }
 
 .text-editor {
