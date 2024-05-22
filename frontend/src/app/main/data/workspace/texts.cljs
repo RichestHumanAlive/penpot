@@ -205,6 +205,23 @@
 
 ;; --- TEXT EDITION IMPL
 
+(defn update-shape-text-content
+  [shape content]
+  (ptk/reify ::update-shape-text-content
+    ptk/WatchEvent
+    (watch [_ _ _]
+      (let [id (:id shape)
+            shape-ids [id]
+
+            update-shape
+            (fn [shape]
+              (-> shape
+                  (dissoc :fills)
+                  (assoc :content content)))]
+
+        (js/console.log "hola" shape content)
+        (rx/of (dch/update-shapes shape-ids update-shape))))))
+
 (defn- update-text-content
   [shape pred-fn update-fn attrs]
   (let [update-attrs-fn #(update-fn % attrs)
@@ -277,7 +294,6 @@
                           (cfh/text-shape? shape)  [id]
                           (cfh/group-shape? shape) (cfh/get-children-ids objects id))]
           (rx/of (dwsh/update-shapes shape-ids #(update-text-content % update-node? d/txt-merge attrs))))))))
-
 
 (defn migrate-node
   [node]

@@ -13,6 +13,7 @@
    [app.common.text :as text]
    [app.main.data.workspace.texts :as dwt]
    [app.main.refs :as refs]
+   [app.main.store :as st]
    [app.util.dom :as dom]
    [app.util.keyboard :as kbd]
    [rumext.v2 :as mf]))
@@ -37,30 +38,44 @@
 
          (iterable? children)
          (doseq [child children]
-           (do (js/console.log "whatever" child)
-               (.appendChild element child)))))
+           (.appendChild element child))))
 
      element)))
 
+(defn create-empty-content-v1
+  []
+  (create-element "div"
+                  [["data-type" "root"]]
+                  [create-element "div"
+                   [["data-type" "paragraph-set"]]
+                   [create-element "div"
+                    [["data-type" "paragraph"]]
+                    [""]]]))
+
 (defn content-v1->dom
   "Using a `content-v1` node creates a series of DOM nodes"
-  [node]
-  (prn "type" (:type node))
-  (cond
-    (= "root" (:type node))
-    (create-element "div" [["data-type" "root"]]
-                    (mapv #(content-v1->dom %) (:children node)))
+  ([node]
+   (content-v1->dom node 0))
+  ([node level]
+   (if (nil? node)
+     (if (= level 0)
+       (create-empty-content-v1)
+       (dom/create-text ""))
+     (cond
+       (= "root" (:type node))
+       (create-element "div" [["data-type" "root"]]
+                       (mapv #(content-v1->dom % (+ level 1)) (:children node)))
 
-    (= "paragraph-set" (:type node))
-    (create-element "div" [["data-type" "paragraph-set"]]
-                    (mapv #(content-v1->dom %) (:children node)))
+       (= "paragraph-set" (:type node))
+       (create-element "div" [["data-type" "paragraph-set"]]
+                       (mapv #(content-v1->dom % (+ level 1)) (:children node)))
 
-    (= "paragraph" (:type node))
-    (create-element "div" [["data-type" "paragraph"]]
-                    (mapv #(content-v1->dom %) (:children node)))
+       (= "paragraph" (:type node))
+       (create-element "div" [["data-type" "paragraph"]]
+                       (mapv #(content-v1->dom % (+ level 1)) (:children node)))
 
-    :else
-    (dom/create-text (:text node))))
+       :else
+       (dom/create-text (:text node)))))  )
 
 (defn dom->content-v1
   "Using a DOM node returns a `content-v1` compatible structure"
@@ -72,9 +87,13 @@
        (= type js/Node.ELEMENT_NODE) {:type (case level
                                               0 "root"
                                               1 "paragraph-set"
-                                              2 "paragraph")
-                                      :children (mapv #(dom->content-v1 % (+ level 1)) (.-childNodes node))}
-       (= type js/Node.TEXT_NODE) {:text (.-textContent node)}))))
+                                              2 "paragraph"
+                                              nil)
+                                      :children (mapv
+                                                 #(dom->content-v1 % (+ level 1))
+                                                 (.-childNodes node))}
+       (= type js/Node.TEXT_NODE) {:text (.-wholeText node)}))))
+
 
 (mf/defc text-editor-html
   "Text editor (HTML)"
@@ -91,25 +110,33 @@
         on-paste (fn [e] (js/console.log (.-type e) e))
         on-copy (fn [e] (js/console.log (.-type e) e))
         on-cut (fn [e] (js/console.log (.-type e) e))
-        on-blur (fn [e] (js/console.log (.-type e) e))
+        on-blur (fn [e]
+                  (js/console.log (.-type e) e)
+                  (let [container (mf/ref-val text-editor-ref)
+                        new-content (dom->content-v1 (.-firstElementChild container))]
+                    (js/console.log "new-content" new-content)
+                    (st/emit! (dwt/update-shape-text-content shape new-content))))
         on-focus (fn [e] (js/console.log (.-type e) e))
         on-input (fn [e]
                    (js/console.log (.-type e) e)
-                   (let [container (mf/ref-val text-editor-ref)]
-                     (js/console.log (dom->content-v1 container))))
+                   (let [container (mf/ref-val text-editor-ref)
+                         new-content (dom->content-v1 (.-firstElementChild container))]
+                     (js/console.log "new-content" new-content)
+                     (st/emit! (dwt/update-shape-text-content shape new-content))))
         on-before-input (fn [e] (js/console.log (.-type e) e))]
 
     ;; Initialize text editor content.
     ;; TODO: Instead of using dom/set-text! we're going to use a custom
     ;; set-html! that sanitizes input (so it can be used in paste
     ;; events).
-    (mf/with-effect
-      [text-editor-ref]
-      (let [text-editor (mf/ref-val text-editor-ref)]
-        (when (some? text-editor)
-          (let [content-root (content-v1->dom content)]
-            (dom/append-child! text-editor content-root))
-          (dom/focus! text-editor))))
+    (mf/use-effect
+     (mf/deps text-editor-ref)
+     (fn []
+       (let [text-editor (mf/ref-val text-editor-ref)]
+         (when (some? text-editor)
+           (let [content-root (content-v1->dom content)]
+             (dom/append-child! text-editor content-root))
+           (dom/focus! text-editor)))))
 
     #_(prn "text-editor" id content shape)
     [:div.text-editor.v2
