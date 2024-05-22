@@ -14,6 +14,7 @@
    [app.main.data.workspace.texts :as dwt]
    [app.main.refs :as refs]
    [app.util.dom :as dom]
+   [app.util.keyboard :as kbd]
    [rumext.v2 :as mf]))
 
 ;; TODO: Esto debería moverlo a DOM
@@ -63,8 +64,17 @@
 
 (defn dom->content-v1
   "Using a DOM node returns a `content-v1` compatible structure"
-  [node]
-  )
+  ([node]
+   (dom->content-v1 node 0))
+  ([node level]
+   (let [type (.-nodeType node)]
+     (cond
+       (= type js/Node.ELEMENT_NODE) {:type (case level
+                                              0 "root"
+                                              1 "paragraph-set"
+                                              2 "paragraph")
+                                      :children (mapv #(dom->content-v1 % (+ level 1)) (.-childNodes node))}
+       (= type js/Node.TEXT_NODE) {:text (.-textContent node)}))))
 
 (mf/defc text-editor-html
   "Text editor (HTML)"
@@ -74,12 +84,19 @@
   (let [content (:content shape)
         text-editor-ref (mf/use-ref nil)
 
+        on-key-up (fn [e]
+                    (when (kbd/esc? e)
+                      (let [container (mf/ref-val text-editor-ref)]
+                        (.blur container))))
         on-paste (fn [e] (js/console.log (.-type e) e))
         on-copy (fn [e] (js/console.log (.-type e) e))
         on-cut (fn [e] (js/console.log (.-type e) e))
         on-blur (fn [e] (js/console.log (.-type e) e))
         on-focus (fn [e] (js/console.log (.-type e) e))
-        on-input (fn [e] (js/console.log (.-type e) e))
+        on-input (fn [e]
+                   (js/console.log (.-type e) e)
+                   (let [container (mf/ref-val text-editor-ref)]
+                     (js/console.log (dom->content-v1 container))))
         on-before-input (fn [e] (js/console.log (.-type e) e))]
 
     ;; Initialize text editor content.
@@ -101,6 +118,7 @@
       :role "textbox"
       :aria-multiline true
       :aria-autocomplete "none"
+      :on-key-up on-key-up
       :on-paste on-paste
       :on-copy on-copy
       :on-cut on-cut
