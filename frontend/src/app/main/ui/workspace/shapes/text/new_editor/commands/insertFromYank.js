@@ -1,0 +1,1 @@
+export function insertFromYank(editor, event) {}

@@ -32,6 +32,47 @@
    [cuerdas.core :as str]
    [potok.v2.core :as ptk]))
 
+;; -- New Editor
+
+(defn update-text-shape-layout
+  [id position-data]
+  (ptk/reify ::update-text-shape-layout
+    ptk/UpdateEvent
+    (update [_ state]
+      (let [page-id      (:current-page-id state)]
+        (update-in state [:workspace-data :pages-index page-id :objects id]
+                   (fn [object]
+                     (js/console.log "position-data" position-data "object" object)
+                     (let [modified-object (assoc object :position-data position-data)]
+                       (js/console.log "modified-object" modified-object))))))))
+
+(defn update-text-shape-content
+  [id content update-name?]
+  (ptk/reify ::update-text-shape-content
+    ptk/WatchEvent
+    (watch [_ state _]
+      (let [objects      (wsh/lookup-page-objects state)
+            shape        (get objects id)
+            modifiers    (get-in state [:workspace-text-modifier id])
+            new-shape?   (nil? (:content shape))]
+        (js/console.log (clj->js content))
+        (rx/of
+         (dch/update-shapes
+          [id]
+          (fn [shape]
+            (let [{:keys [width height position-data]} modifiers]
+              (let [new-shape (-> shape
+                        (assoc :content content)
+                        (cond-> position-data
+                          (assoc :position-data position-data))
+                        #_(cond-> (and update-name? (some? name))
+                          (assoc :name name))
+                        (cond-> (or (some? width) (some? height))
+                          (gsh/transform-shape (ctm/change-size shape width height))))]
+                (js/console.log new-shape)
+                new-shape)))
+          {:undo-group (when new-shape? id)}))))))
+
 ;; -- Editor
 
 (defn update-editor
@@ -64,6 +105,7 @@
   (ptk/reify ::update-editor-state
     ptk/UpdateEvent
     (update [_ state]
+      (js/console.log "update-editor-state" editor-state)
       (if (some? editor-state)
         (update state :workspace-editor-state assoc id editor-state)
         (update state :workspace-editor-state dissoc id)))))
@@ -204,23 +246,6 @@
 
 
 ;; --- TEXT EDITION IMPL
-
-(defn update-shape-text-content
-  [shape content]
-  (ptk/reify ::update-shape-text-content
-    ptk/WatchEvent
-    (watch [_ _ _]
-      (let [id (:id shape)
-            shape-ids [id]
-
-            update-shape
-            (fn [shape]
-              (-> shape
-                  (dissoc :fills)
-                  (assoc :content content)))]
-
-        (js/console.log "hola" shape content)
-        (rx/of (dch/update-shapes shape-ids update-shape))))))
 
 (defn- update-text-content
   [shape pred-fn update-fn attrs]

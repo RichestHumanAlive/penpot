@@ -1,0 +1,1 @@
+export function deleteEntireSoftLine(editor, event) {}

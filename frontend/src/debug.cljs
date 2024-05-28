@@ -524,6 +524,7 @@
     (set! st/*text-editor* "v2")
 
     :else
-    (js/console.warn "Unsupported text editor version" version))
+    (let [current-version st/*text-editor*]
+      (js/console.warn "Unsupported text editor version" version "using" current-version)))
 
   (js* "app.main.reinit()"))

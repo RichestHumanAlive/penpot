@@ -1,0 +1,1 @@
+export function deleteContent(editor, event) {}

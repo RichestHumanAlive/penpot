@@ -6,94 +6,21 @@
 
 (ns app.main.ui.workspace.shapes.text.new-editor
   (:require
+   ["./new_editor_impl.js" :as impl]
    [app.common.data.macros :as dm]
    [app.common.geom.shapes :as gsh]
    [app.common.geom.shapes.text :as gst]
    [app.common.math :as mth]
    [app.common.text :as text]
+   [app.main.data.workspace :as dw]
    [app.main.data.workspace.texts :as dwt]
    [app.main.refs :as refs]
    [app.main.store :as st]
+   [app.main.ui.css-cursors :as cur]
    [app.util.dom :as dom]
    [app.util.keyboard :as kbd]
+   [goog.events :as events]
    [rumext.v2 :as mf]))
-
-;; TODO: Esto debería moverlo a DOM
-(defn create-element
-  ([tag]
-   (create-element tag nil nil))
-  ([tag attribs]
-   (create-element tag attribs nil))
-  ([tag attribs children]
-   (let [element (dom/create-element tag)]
-     (when (iterable? attribs)
-       (doseq [[name value] attribs]
-         (.setAttribute element name value)))
-
-     (when (some? children)
-       (js/console.log "children" children)
-       (cond
-         (string? children)
-         (set! (.-textContent element) children)
-
-         (iterable? children)
-         (doseq [child children]
-           (.appendChild element child))))
-
-     element)))
-
-(defn create-empty-content-v1
-  []
-  (create-element "div"
-                  [["data-type" "root"]]
-                  [create-element "div"
-                   [["data-type" "paragraph-set"]]
-                   [create-element "div"
-                    [["data-type" "paragraph"]]
-                    [""]]]))
-
-(defn content-v1->dom
-  "Using a `content-v1` node creates a series of DOM nodes"
-  ([node]
-   (content-v1->dom node 0))
-  ([node level]
-   (if (nil? node)
-     (if (= level 0)
-       (create-empty-content-v1)
-       (dom/create-text ""))
-     (cond
-       (= "root" (:type node))
-       (create-element "div" [["data-type" "root"]]
-                       (mapv #(content-v1->dom % (+ level 1)) (:children node)))
-
-       (= "paragraph-set" (:type node))
-       (create-element "div" [["data-type" "paragraph-set"]]
-                       (mapv #(content-v1->dom % (+ level 1)) (:children node)))
-
-       (= "paragraph" (:type node))
-       (create-element "div" [["data-type" "paragraph"]]
-                       (mapv #(content-v1->dom % (+ level 1)) (:children node)))
-
-       :else
-       (dom/create-text (:text node)))))  )
-
-(defn dom->content-v1
-  "Using a DOM node returns a `content-v1` compatible structure"
-  ([node]
-   (dom->content-v1 node 0))
-  ([node level]
-   (let [type (.-nodeType node)]
-     (cond
-       (= type js/Node.ELEMENT_NODE) {:type (case level
-                                              0 "root"
-                                              1 "paragraph-set"
-                                              2 "paragraph"
-                                              nil)
-                                      :children (mapv
-                                                 #(dom->content-v1 % (+ level 1))
-                                                 (.-childNodes node))}
-       (= type js/Node.TEXT_NODE) {:text (.-wholeText node)}))))
-
 
 (mf/defc text-editor-html
   "Text editor (HTML)"
@@ -101,58 +28,112 @@
    ::mf/wrap-props false}
   [{:keys [shape] :as props}]
   (let [content (:content shape)
-        text-editor-ref (mf/use-ref nil)
+        shape-id (:id shape)
 
-        on-key-up (fn [e]
-                    (when (kbd/esc? e)
-                      (let [container (mf/ref-val text-editor-ref)]
-                        (.blur container))))
-        on-paste (fn [e] (js/console.log (.-type e) e))
-        on-copy (fn [e] (js/console.log (.-type e) e))
-        on-cut (fn [e] (js/console.log (.-type e) e))
-        on-blur (fn [e]
-                  (js/console.log (.-type e) e)
-                  (let [container (mf/ref-val text-editor-ref)
-                        new-content (dom->content-v1 (.-firstElementChild container))]
-                    (js/console.log "new-content" new-content)
-                    (st/emit! (dwt/update-shape-text-content shape new-content))))
-        on-focus (fn [e] (js/console.log (.-type e) e))
-        on-input (fn [e]
-                   (js/console.log (.-type e) e)
-                   (let [container (mf/ref-val text-editor-ref)
-                         new-content (dom->content-v1 (.-firstElementChild container))]
-                     (js/console.log "new-content" new-content)
-                     (st/emit! (dwt/update-shape-text-content shape new-content))))
-        on-before-input (fn [e] (js/console.log (.-type e) e))]
+        ;; This is a reference to the dom element that
+        ;; should contain the TextEditor
+        text-editor-ref (mf/use-ref nil)
+        ;; This reference is to the container
+        text-editor-container-ref (mf/use-ref nil)
+        text-editor-instance-ref (mf/use-ref nil)
+
+        on-blur
+        (mf/use-fn
+         (fn []
+           (let [text-editor-instance (mf/ref-val text-editor-instance-ref)
+                 container (mf/ref-val text-editor-container-ref)
+                 new-content (js->clj (impl/getContent text-editor-instance))]
+             (st/emit! (dwt/update-text-shape-content shape-id new-content true))
+             (dom/set-style! container "opacity" 0))))
+
+        on-focus
+        (mf/use-fn
+         (fn []
+           (let [container (mf/ref-val text-editor-container-ref)]
+             (dom/set-style! container "opacity" 1))))
+
+        on-input
+        (mf/use-fn
+         (fn [e]
+           (js/console.log (.-type e) e)
+           (let [text-editor-instance (mf/ref-val text-editor-instance-ref)
+                 new-content (js->clj (impl/getContent text-editor-instance))]
+             (st/emit! (dwt/update-text-shape-content shape-id new-content false)))))
+
+        on-change
+        (mf/use-fn
+         (fn []
+           (let [text-editor-instance (mf/ref-val text-editor-instance-ref)
+                 new-content (js->clj (impl/getContent text-editor-instance))
+                 new-layout (js->clj (impl/layout text-editor-instance))]
+             (st/emit! (dwt/update-text-shape-content shape-id new-content true))
+             (st/emit! (dwt/update-text-shape-layout shape-id new-layout))
+             (js/console.log "new-layout" new-layout)
+             (js/console.log "new-content" new-content))))
+
+        on-click
+        (mf/use-fn
+         (fn []
+           (let [text-editor-instance (mf/ref-val text-editor-instance-ref)]
+             (.focus text-editor-instance))))
+
+        on-key-up
+        (mf/use-fn
+         (fn [e]
+           (dom/stop-propagation e)
+           (when (kbd/esc? e)
+             (st/emit! :interrupt (dw/clear-edition-mode)))))]
 
     ;; Initialize text editor content.
-    ;; TODO: Instead of using dom/set-text! we're going to use a custom
-    ;; set-html! that sanitizes input (so it can be used in paste
-    ;; events).
     (mf/use-effect
      (mf/deps text-editor-ref)
      (fn []
-       (let [text-editor (mf/ref-val text-editor-ref)]
-         (when (some? text-editor)
-           (let [content-root (content-v1->dom content)]
-             (dom/append-child! text-editor content-root))
-           (dom/focus! text-editor)))))
+       ;; NOTE: I don't like this. Too much initialization.
+       (let [keys [(events/listen js/document "keyup" on-key-up)]
+             text-editor (mf/ref-val text-editor-ref)
+             text-editor-instance (impl/TextEditor. text-editor)]
+         (mf/set-ref-val! text-editor-instance-ref text-editor-instance)
+         (.addEventListener text-editor-instance "change" on-change)
+         #_(st/emit! (dwt/update-editor text-editor-instance))
+         (when (some? content)
+           (impl/setContent text-editor-instance (clj->js content)
+            #js {:selectAll true}))
 
-    #_(prn "text-editor" id content shape)
-    [:div.text-editor.v2
-     {:ref text-editor-ref
-      :content-editable true
-      :role "textbox"
-      :aria-multiline true
-      :aria-autocomplete "none"
-      :on-key-up on-key-up
-      :on-paste on-paste
-      :on-copy on-copy
-      :on-cut on-cut
-      :on-blur on-blur
-      :on-focus on-focus
-      :on-before-input on-before-input
-      :on-input on-input}]))
+         ;; NOTE: I don't like this. I would prefer
+         ;; something more concise.
+         (fn []
+           (.removeEventListener text-editor-instance "change" on-change)
+           (.dispose text-editor-instance)
+           #_(st/emit! (dwt/update-editor nil))
+           (doseq [key keys]
+             (events/unlistenByKey key))))))
+
+    [:div.text-editor-container.v2
+     {:ref text-editor-container-ref
+      :style {:width (:width shape)
+              :height (:height shape)}
+              ;; We hide the editor when is blurred because otherwise the selection won't let us see
+              ;; the underlying text. Use opacity because display or visibility won't allow to recover
+              ;; focus afterwards.
+              ;; IMPORTANT! This is now done through DOM mutations (see on-blur and on-focus)
+              ;; but I keep this for future references.
+              ;; :opacity (when @blurred 0)}}
+      :on-click on-click
+      :class (dom/classnames
+              (cur/get-dynamic "text" (:rotation shape)) true
+              :align-top    (= (:vertical-align content "top") "top")
+              :align-center (= (:vertical-align content) "center")
+              :align-bottom (= (:vertical-align content) "bottom"))}
+
+     [:div.text-editor-content
+      {:ref text-editor-ref
+       :content-editable true
+       :role "textbox"
+       :aria-multiline true
+       :aria-autocomplete "none"
+       :on-blur on-blur
+       :on-focus on-focus
+       :on-input on-input}]]))
 
 ;;
 ;; Text Editor Wrapper
@@ -179,8 +160,6 @@
                 (dwt/apply-text-modifier text-modifier))
 
         bounds (gst/shape->rect shape)
-
-        _ (prn "shape.x" (:x shape) "bounds.x" (:x bounds))
 
         x      (mth/min (dm/get-prop bounds :x)
                         (dm/get-prop shape :x))

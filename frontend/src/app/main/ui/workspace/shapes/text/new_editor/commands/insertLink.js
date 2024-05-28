@@ -1,0 +1,1 @@
+export function insertLink(editor, event) {}
