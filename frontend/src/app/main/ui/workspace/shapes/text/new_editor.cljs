@@ -22,6 +22,71 @@
    [goog.events :as events]
    [rumext.v2 :as mf]))
 
+(defn from-content-text
+  [node]
+  {:text (unchecked-get node "text")
+   :typography-ref-id (unchecked-get node "typography-ref-id")
+   :typography-ref-file (unchecked-get node "typography-ref-file")
+   :fond-id (unchecked-get node "font-id")
+   :font-variant-id (unchecked-get node "font-variant-id")
+   :font-family (unchecked-get node "font-family")
+   :font-size (unchecked-get node "font-size")
+   :font-weight (unchecked-get node "font-weight")
+   :font-style (unchecked-get node "font-style")
+   :line-height (unchecked-get node "line-height")
+   :letter-spacing (unchecked-get node "letter-spacing")
+   :text-decoration (unchecked-get node "text-decoration")
+   :text-transform (unchecked-get node "text-transform")
+   :fills (unchecked-get node "fills")})
+
+(defn from-content-paragraph
+  [node]
+  {:type (unchecked-get node "type")
+   :text-align (unchecked-get node "text-align")
+   :text-direction (unchecked-get node "text-direction")
+   :line-height (unchecked-get node "line-height")
+   :font-size (unchecked-get node "font-size")
+   :children (mapv #(from-content-text %)
+                   (.-children node))})
+
+(defn from-content-paragraph-set
+  [node]
+  {:type (.-type node)
+   :children (mapv #(from-content-paragraph %) (.-children node))})
+
+(defn from-content-root
+  [node]
+  (cond-> {:type (unchecked-get node "type")
+           :vertical-align (unchecked-get node "vertica-align")
+           :children (mapv #(from-content-paragraph-set %) (.-children node))}))
+
+(defn from-content
+  [node]
+  (from-content-root node))
+
+(defn from-layout-text
+  [layout-text]
+  {:text (unchecked-get layout-text "text")
+   :x (unchecked-get layout-text "x")
+   :y (unchecked-get layout-text "y")
+   :x1 (unchecked-get layout-text "x1")
+   :y1 (unchecked-get layout-text "y1")
+   :x2 (unchecked-get layout-text "x2")
+   :y2 (unchecked-get layout-text "y2")
+   :line-height (unchecked-get layout-text "lineHeight")
+   :letter-spacing (unchecked-get layout-text "letterSpacing")
+   :font-family (unchecked-get layout-text "fontFamily")
+   :font-size (unchecked-get layout-text "fontSize")
+   :font-weight (unchecked-get layout-text "fontWeight")
+   :font-style (unchecked-get layout-text "fontStyle")
+   :font-variant (unchecked-get layout-text "fontVariant")
+   :text-transform (unchecked-get layout-text "textTransform")
+   :text-decoration (unchecked-get layout-text "textDecoration")})
+
+(defn from-layout
+  [layout]
+  (mapv #(from-layout-text %) layout))
+
 (mf/defc text-editor-html
   "Text editor (HTML)"
   {::mf/wrap [mf/memo]
@@ -42,7 +107,7 @@
          (fn []
            (let [text-editor-instance (mf/ref-val text-editor-instance-ref)
                  container (mf/ref-val text-editor-container-ref)
-                 new-content (js->clj (impl/getContent text-editor-instance))]
+                 new-content (from-content (impl/getContent text-editor-instance))]
              (st/emit! (dwt/update-text-shape-content shape-id new-content true))
              (dom/set-style! container "opacity" 0))))
 
@@ -57,15 +122,15 @@
          (fn [e]
            (js/console.log (.-type e) e)
            (let [text-editor-instance (mf/ref-val text-editor-instance-ref)
-                 new-content (js->clj (impl/getContent text-editor-instance))]
+                 new-content (from-content (impl/getContent text-editor-instance))]
              (st/emit! (dwt/update-text-shape-content shape-id new-content false)))))
 
         on-change
         (mf/use-fn
          (fn []
            (let [text-editor-instance (mf/ref-val text-editor-instance-ref)
-                 new-content (js->clj (impl/getContent text-editor-instance))
-                 new-layout (js->clj (impl/layout text-editor-instance))]
+                 new-content (from-content (impl/getContent text-editor-instance))
+                 new-layout (from-layout (impl/layoutFromEditor text-editor-instance))]
              (st/emit! (dwt/update-text-shape-content shape-id new-content true))
              (st/emit! (dwt/update-text-shape-layout shape-id new-layout))
              (js/console.log "new-layout" new-layout)

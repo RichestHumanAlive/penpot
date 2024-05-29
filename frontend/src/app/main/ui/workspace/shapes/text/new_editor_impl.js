@@ -77,7 +77,7 @@ function extractStyles(element, contentNode, attrs) {
     if (!(elementStyle in element.style)) {
       let value = null
       try {
-        value = JSON.parse(style.getPropertyValue(`--${contentAttr}`))
+        // value = JSON.parse(style.getPropertyValue(`--${contentAttr}`))
       } catch (error) {
         console.warn(error)
       }
@@ -280,6 +280,185 @@ class TextLayout {
 }
 */
 
+export class TextLayout {
+  $layoutRange = null;
+  $layoutElement = null;
+
+  constructor() {
+    this.$layoutRange = document.createRange();
+    const layoutElement = document.querySelector("[data-layout]");
+    if (!layoutElement) {
+      this.$layoutElement = document.createElement("div");
+    } else {
+      this.$layoutElement = layoutElement;
+    }
+    this.$setupLayout();
+  }
+
+  $setLayoutSizeFromElement(element) {
+    return this.$setLayoutSize(
+      element.parentElement.clientWidth,
+      element.parentElement.clientHeight
+    )
+  }
+
+  $setLayoutSize(width, height) {
+    this.$layoutElement.style.width = `${width}px`;
+    this.$layoutElement.style.height = `${height}px`;
+    return this
+  }
+
+  $setupLayout() {
+    this.$layoutElement.dataset.layout = true;
+    this.$layoutElement.style.pointerEvents = "none";
+    this.$layoutElement.style.left = "0px";
+    this.$layoutElement.style.top = "0px";
+    this.$layoutElement.style.position = "absolute";
+
+    const prevLayoutElement = document.querySelector("[data-layout]");
+    if (prevLayoutElement) {
+      prevLayoutElement.parentElement.replaceChild(
+        this.$layoutElement,
+        prevLayoutElement
+      );
+    } else {
+      document.body.appendChild(this.$layoutElement)
+    }
+  }
+
+  $getRangeRects(node, start, end) {
+    const range = this.$layoutRange;
+    range.setStart(node, start);
+    range.setEnd(node, end);
+    return [...range.getClientRects()].filter((clientRect) => clientRect.width > 0);
+  }
+
+  $layoutTextNode(parent, textNode, textAlign) {
+    const content = textNode.textContent;
+    const textSize = content.length;
+
+    let from = 0;
+    let to = 0;
+    let current = "";
+    let result = [];
+    let prevRect = null;
+
+    // This variable is to make sure there are not infinite loops
+    // when we don't advance `to` we store true and then force to
+    // advance `to` on the next iteration if the condition is true again
+    let safeGuard = false;
+
+    while (to < textSize) {
+      const rects = this.$getRangeRects(textNode, from, to + 1);
+      const splitByWords = textAlign == "justify" && content[to].trim() == "";
+
+      if (rects.length > 1 && safeGuard) {
+        from++;
+        to++;
+        safeGuard = false;
+      } else if (rects.length > 1 || splitByWords) {
+        const rect = prevRect;
+        console.log("prevRect", rect);
+        result.push({
+          node: parent,
+          rect: rect,
+          text: current,
+        });
+
+        if (splitByWords) {
+          to++;
+        }
+
+        from = to;
+        current = "";
+        safeGuard = true;
+      } else {
+        prevRect = rects[0];
+        current += content[to];
+        to = to + 1;
+        safeGuard = false;
+      }
+    }
+
+    // to == textSize
+    const rects = this.$getRangeRects(textNode, from, to);
+    console.log(rects[0]);
+    result.push({
+      node: parent,
+      rect: rects[0],
+      text: current,
+    });
+    return result;
+  }
+
+  /**
+   *
+   * @param {*} content
+   * @param {*} options
+   */
+  layoutFromContent(content, options) {
+
+  }
+
+  /**
+   * Layouts the text.
+   *
+   * TODO: Sacar esto de aquí para que el layout se pueda realizar
+   *       independientemente del editor de texto.
+   *
+   * NOTA: Podría tener dos métodos, uno más directo, que utilice
+   *       el propio editor de texto, algo como `fastLayout` y otro
+   *       más lento que haga el layout a partir de un Content de texto.
+   *
+   *
+   *
+   *
+   *
+   *
+   */
+  layoutFromElement(element) {
+    this.$setLayoutSizeFromElement(element)
+    console.log("Do the layout!");
+    this.$layoutElement.replaceChildren(element.cloneNode(true));
+    console.log(this.$layoutElement);
+    const positionData = Array.from(this.$layoutElement.querySelectorAll("[data-text]"))
+      .flatMap((inlineNode) => {
+        console.log(inlineNode);
+        const textAlign = inlineNode.parentElement.style.textAlign || "left";
+        return Array.from(inlineNode.childNodes).flatMap((childNode) =>
+          this.$layoutTextNode(inlineNode, childNode, textAlign),
+        );
+      })
+      .filter((layoutNode) => layoutNode.rect)
+      .map((layoutNode) => {
+        return {
+          direction: layoutNode.node.style.getPropertyValue("text-direction") || "ltr",
+          fills: [{ "fill-color": "#000000", "fill-opacity": 1 }],
+          fontFamily: layoutNode.node.style.getPropertyValue("font-family"),
+          fontSize: layoutNode.node.style.getPropertyValue("font-size"),
+          fontStyle: layoutNode.node.style.getPropertyValue("font-style"),
+          fontWeight: layoutNode.node.style.getPropertyValue("font-weight"),
+          fontVariant: layoutNode.node.style.getPropertyValue("font-variant"),
+          lineHeight: layoutNode.node.style.getPropertyValue("line-height"),
+          letterSpacing: layoutNode.node.style.getPropertyValue("letter-spacing"),
+          text: layoutNode.text,
+          textDecoration: layoutNode.node.style.getPropertyValue("text-decoration"),
+          textTransform: layoutNode.node.style.getPropertyValue("text-transform"),
+          x: layoutNode.rect.x,
+          y: layoutNode.rect.y,
+          height: layoutNode.rect.height,
+          width: layoutNode.rect.width,
+          x1: layoutNode.rect.x,
+          y1: layoutNode.rect.y,
+          x2: layoutNode.rect.x + layoutNode.rect.width,
+          y2: layoutNode.rect.y + layoutNode.rect.height,
+        };
+      });
+    console.log("position-data", positionData);
+    return positionData;
+  }
+}
+
 export class TextEditor extends EventTarget {
   /**
    * @type {HTMLElement}
@@ -328,12 +507,6 @@ export class TextEditor extends EventTarget {
     };
     this.$setup();
 
-    // Setup the layout elements, these are needed to do
-    // the proper text layout.
-    this.$layoutRange = document.createRange();
-    this.$layoutElement = document.createElement('div');
-    this.$setupLayout();
-
     if (options?.autofocus ?? true) {
       this.focus();
     }
@@ -367,22 +540,13 @@ export class TextEditor extends EventTarget {
     this.$addEventListeners();
   }
 
-  $setupLayout() {
-    this.$layoutElement.dataset.layout = true;
-    this.$layoutElement.style.pointerEvents = 'none';
-    this.$layoutElement.style.left = '0px';
-    this.$layoutElement.style.top = '0px';
-    this.$layoutElement.style.position = 'absolute';
-    this.$layoutElement.style.width = this.$element.parentElement.style.width;
-    this.$layoutElement.style.height = this.$element.parentElement.style.height;
-    document.body.appendChild(this.$layoutElement);
-  }
-
   dispose() {
     if (this.$changeController.hasPendingChanges) {
       this.$changeController.notifyImmediately();
     }
     this.$removeEventListeners();
+    this.$element = null;
+    this.$changeController = null;
   }
 
   $onSelectionChange = (e) => {
@@ -585,141 +749,9 @@ export class TextEditor extends EventTarget {
   getRandomId() {
     return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36)
   }
-
-  $getRangeRects(node, start, end) {
-    const range = this.$layoutRange;
-    range.setStart(node, start);
-    range.setEnd(node, end);
-    return [...range.getClientRects()].filter((clientRect) => clientRect.width > 0);
-  }
-
-  $layoutTextNode(parent, textNode, textAlign) {
-    const content = textNode.textContent;
-    const textSize = content.length;
-
-    let from = 0;
-    let to = 0;
-    let current = "";
-    let result = [];
-    let prevRect = null;
-
-    // This variable is to make sure there are not infinite loops
-    // when we don't advance `to` we store true and then force to
-    // advance `to` on the next iteration if the condition is true again
-    let safeGuard = false;
-
-    while (to < textSize) {
-      const rects = this.$getRangeRects(textNode, from, to + 1);
-      const splitByWords = textAlign == "justify" && content[to].trim() == "";
-
-      if (rects.length > 1 && safeGuard) {
-        from++;
-        to++;
-        safeGuard = false;
-      } else if (rects.length > 1 || splitByWords) {
-        const rect = prevRect;
-        console.log('prevRect', rect)
-        result.push({
-          node: parent,
-          rect: rect,
-          text: current,
-        });
-
-        if (splitByWords) {
-          to++;
-        }
-
-        from = to;
-        current = "";
-        safeGuard = true;
-      } else {
-        prevRect = rects[0];
-        current += content[to];
-        to = to + 1;
-        safeGuard = false;
-      }
-    }
-
-    // to == textSize
-    const rects = this.$getRangeRects(textNode, from, to);
-    console.log(rects[0])
-    result.push({
-      node: parent,
-      rect: rects[0],
-      text: current
-    });
-    return result;
-  }
-
-  /**
-   * Layouts the text.
-   *
-   * TODO: Sacar esto de aquí para que el layout se pueda realizar
-   *       independientemente del editor de texto.
-   *
-   * NOTA: Podría tener dos métodos, uno más directo, que utilice
-   *       el propio editor de texto, algo como `fastLayout` y otro
-   *       más lento que haga el layout a partir de un Content de texto.
-   *
-   *
-   *
-   *
-   *
-   *
-   */
-  layout() {
-    console.log('Do the layout!')
-    this.$layoutElement.replaceChildren(
-      this.$element.cloneNode(true)
-    );
-    console.log(this.$layoutElement)
-
-    const positionData = Array
-      .from(this.$layoutElement.querySelectorAll('[data-text]'))
-      .flatMap((inlineNode) => {
-        console.log(inlineNode)
-        const textAlign = inlineNode.parentElement.style.textAlign || 'left';
-        return Array
-          .from(inlineNode.childNodes)
-          .flatMap((childNode) => this.$layoutTextNode(inlineNode, childNode, textAlign));
-      })
-      .filter((layoutNode) => layoutNode.rect)
-      .map((layoutNode) => {
-        return {
-          direction: layoutNode.node.style.getPropertyValue("text-direction") || 'ltr',
-          fills: [
-            {"fill-color": "#000000", "fill-opacity": 1}
-          ],
-          "font-family": layoutNode.node.style.getPropertyValue("font-family"),
-          "font-size": layoutNode.node.style.getPropertyValue("font-size"),
-          "font-style": layoutNode.node.style.getPropertyValue("font-style"),
-          "font-weight": layoutNode.node.style.getPropertyValue("font-weight"),
-          "font-variant": layoutNode.node.style.getPropertyValue("font-variant"),
-          "line-height": layoutNode.node.style.getPropertyValue("line-height"),
-          "letter-spacing": layoutNode.node.style.getPropertyValue("letter-spacing"),
-          text: layoutNode.text,
-          "text-decoration": layoutNode.node.style.getPropertyValue("text-decoration"),
-          "text-transform": layoutNode.node.style.getPropertyValue("text-transform"),
-          x: layoutNode.rect.x,
-          y: layoutNode.rect.y,
-          height: layoutNode.rect.height,
-          width: layoutNode.rect.width,
-          x1: layoutNode.rect.x,
-          y1: layoutNode.rect.y,
-          x2: layoutNode.rect.x + layoutNode.rect.width,
-          y2: layoutNode.rect.y + layoutNode.rect.height,
-        };
-      })
-    console.log('position-data', positionData)
-    return positionData
-  }
-
-  toJSON() {
-    return {
-
-    }
-  }
 }
+
+export const textLayout = new TextLayout()
 
 export function setContent(editor, newContent, options) {
   return editor.setContent(newContent, options);
@@ -729,13 +761,23 @@ export function getContent(editor) {
   return editor.getContent();
 }
 
-export function layout(editor) {
-  return editor.layout()
+export function layoutFromContent(content, options) {
+  return textLayout.layoutFromContent(content, options)
+}
+
+export function layoutFromElement(element) {
+  return textLayout.layoutFromElement(element)
+}
+
+export function layoutFromEditor(editor) {
+  return textLayout.layoutFromElement(editor.element)
 }
 
 export default {
   TextEditor,
   getContent,
   setContent,
-  layout
+  textLayout,
+  layoutFromContent,
+  layoutFromElement
 }

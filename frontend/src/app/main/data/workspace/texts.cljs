@@ -44,7 +44,8 @@
                    (fn [object]
                      (js/console.log "position-data" position-data "object" object)
                      (let [modified-object (assoc object :position-data position-data)]
-                       (js/console.log "modified-object" modified-object))))))))
+                       (js/console.log "modified-object" modified-object)
+                       modified-object)))))))
 
 (defn update-text-shape-content
   [id content update-name?]
@@ -55,7 +56,6 @@
             shape        (get objects id)
             modifiers    (get-in state [:workspace-text-modifier id])
             new-shape?   (nil? (:content shape))]
-        (js/console.log (clj->js content))
         (rx/of
          (dch/update-shapes
           [id]
@@ -63,13 +63,12 @@
             (let [{:keys [width height position-data]} modifiers]
               (let [new-shape (-> shape
                         (assoc :content content)
-                        (cond-> position-data
+                        #_(cond-> position-data
                           (assoc :position-data position-data))
                         #_(cond-> (and update-name? (some? name))
                           (assoc :name name))
                         (cond-> (or (some? width) (some? height))
                           (gsh/transform-shape (ctm/change-size shape width height))))]
-                (js/console.log new-shape)
                 new-shape)))
           {:undo-group (when new-shape? id)}))))))
 
