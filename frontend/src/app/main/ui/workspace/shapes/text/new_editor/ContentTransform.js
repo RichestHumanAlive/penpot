@@ -37,7 +37,7 @@ export function applyStyles(element, contentNode, attrs) {
     const value = styleUnits ? `${contentNode[contentAttr]}${styleUnits}` : contentNode[contentAttr];
     if (!elementStyle) {
       // TODO: Ver la forma en al que podemos codificar JSON.
-      style.setProperty(`--${contentAttr}`, `"${JSON.stringify(value)}"`)
+      // style.setProperty(`--${contentAttr}`, `"${JSON.stringify(value)}"`)
     } else {
       style.setProperty(contentAttr, value);
     }
@@ -63,7 +63,7 @@ export function extractStyles(element, contentNode, attrs) {
       let value = null;
       try {
         // TODO: Error de JSON end of input.
-        value = JSON.parse(style.getPropertyValue(`--${contentAttr}`))
+        // value = JSON.parse(style.getPropertyValue(`--${contentAttr}`))
       } catch (error) {
         console.warn(error);
       }

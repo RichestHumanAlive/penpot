@@ -170,7 +170,4 @@ export class TextLayout {
  */
 export const textLayout = new TextLayout();
 
-export default {
-  TextLayout,
-  textLayout
-}
+export default textLayout;

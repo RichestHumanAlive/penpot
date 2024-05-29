@@ -72,15 +72,70 @@ export class TextEditor extends EventTarget {
     return this.$selection;
   }
 
+  $createElement(tag, attribs, children) {
+    const element = document.createElement(tag)
+    if (attribs) {
+      for (const [name, value] of Object.entries(attribs)) {
+        if (name === 'style') {
+          for (const [styleName, styleValue] of Object.entries(value)) {
+            element.style[styleName] = styleValue
+          }
+        } else if (name === 'dataset') {
+          for (const [dataName, dataValue] of Object.entries(value)) {
+            element.dataset[dataName] = dataValue
+          }
+        } else {
+          element.setAttribute(name, value)
+        }
+      }
+    }
+    if (Array.isArray(children)) {
+      element.append(...children)
+    }
+    console.log(tag, attribs, children, element)
+    return element
+  }
+
+  $createRoot() {
+    return this.$createElement(
+      "div",
+      {
+        dataset: {
+          root: true,
+        },
+      },
+      [this.createBlock('Hello, World!')]
+    );
+  }
+
+  createBlock(data) {
+    return this.$createElement('div', {
+      dataset: {
+        block: true
+      }
+    }, [this.createInline(data)])
+  }
+
+  createInline(data) {
+    return this.$createElement('span', {
+      dataset: {
+        text: true
+      }
+    }, [document.createTextNode(data)])
+  }
+
   $setup() {
     this.$element.contentEditable = true;
     this.$element.spellcheck = false;
     this.$element.autocapitalize = false;
     this.$element.autofocus = true;
     this.$element.role = "textbox";
+    this.$element.dataset.editor = true;
 
     this.$element.ariaAutoComplete = false;
     this.$element.ariaMultiLine = true;
+
+    this.$element.appendChild(this.$createRoot());
 
     this.$addEventListeners();
   }
@@ -199,7 +254,8 @@ export class TextEditor extends EventTarget {
       throw new TypeError("Invalid content");
     }
     const root = content;
-    const rootNode = document.createElement("div");
+    const rootNode = this.$element.querySelector('[data-root]')
+                  ?? document.createElement("div");
     ContentTransform.applyRootAttrs(rootNode, root);
     rootNode.dataset.root = true;
     const paragraphSet = root.children[0];

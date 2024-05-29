@@ -107,8 +107,9 @@
          (fn []
            (let [text-editor-instance (mf/ref-val text-editor-instance-ref)
                  container (mf/ref-val text-editor-container-ref)
-                 new-content (from-content (impl/getContent text-editor-instance))]
-             (st/emit! (dwt/update-text-shape-content shape-id new-content true))
+                 new-content (impl/getContent text-editor-instance)]
+             (when (some? new-content)
+               (st/emit! (dwt/update-text-shape-content shape-id (from-content new-content) true)))
              (dom/set-style! container "opacity" 0))))
 
         on-focus
@@ -122,21 +123,21 @@
          (fn [e]
            (js/console.log (.-type e) e)
            (let [text-editor-instance (mf/ref-val text-editor-instance-ref)
-                 new-content (impl/getContent text-editor-instance)
-                 _ (js/console.log "new-content" new-content)
-                 new-content (from-content new-content)]
-             (st/emit! (dwt/update-text-shape-content shape-id new-content false)))))
+                 new-content (impl/getContent text-editor-instance)]
+             (when (some? new-content)
+               (st/emit! (dwt/update-text-shape-content shape-id (from-content new-content) false))))))
 
         on-change
         (mf/use-fn
          (fn []
            (let [text-editor-instance (mf/ref-val text-editor-instance-ref)
-                 new-content (from-content (impl/getContent text-editor-instance))
-                 new-layout (from-layout (impl/layoutFromEditor text-editor-instance))]
-             (st/emit! (dwt/update-text-shape-content shape-id new-content true))
-             (st/emit! (dwt/update-text-shape-layout shape-id new-layout))
-             (js/console.log "new-layout" new-layout)
-             (js/console.log "new-content" new-content))))
+                 new-content (impl/getContent text-editor-instance)
+                 new-layout (impl/layoutFromEditor text-editor-instance)]
+             (when (some? new-content)
+               (st/emit! (dwt/update-text-shape-content shape-id (from-content new-content) true))
+               (st/emit! (dwt/update-text-shape-layout shape-id (from-layout new-layout)))
+               (js/console.log "new-layout" new-layout)
+               (js/console.log "new-content" new-content)))))
 
         on-click
         (mf/use-fn

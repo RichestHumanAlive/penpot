@@ -8,8 +8,8 @@
 
 "use strict";
 
-import { TextEditor } from './new_editor/TextEditor';
-import { textLayout } from './new_editor/TextLayout';
+import TextEditorImpl from './new_editor/TextEditor';
+import textLayoutImpl from './new_editor/TextLayout';
 
 export function setContent(editor, newContent, options) {
   return editor.setContent(newContent, options);
@@ -31,11 +31,15 @@ export function layoutFromEditor(editor) {
   return textLayout.layoutFromElement(editor.element);
 }
 
+export const TextEditor = TextEditorImpl
+export const textLayout = textLayoutImpl
+
 export default {
   TextEditor,
+  textLayout,
   getContent,
   setContent,
-  textLayout,
   layoutFromContent,
+  layoutFromEditor,
   layoutFromElement
 }
