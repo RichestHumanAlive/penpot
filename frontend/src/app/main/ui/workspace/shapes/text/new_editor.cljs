@@ -122,7 +122,9 @@
          (fn [e]
            (js/console.log (.-type e) e)
            (let [text-editor-instance (mf/ref-val text-editor-instance-ref)
-                 new-content (from-content (impl/getContent text-editor-instance))]
+                 new-content (impl/getContent text-editor-instance)
+                 _ (js/console.log "new-content" new-content)
+                 new-content (from-content new-content)]
              (st/emit! (dwt/update-text-shape-content shape-id new-content false)))))
 
         on-change
