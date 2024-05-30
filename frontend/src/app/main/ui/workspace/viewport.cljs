@@ -281,9 +281,12 @@
     [:div.viewport {:style #js {"--zoom" zoom} :data-testid "viewport"}
      [:& top-bar/top-bar {:layout layout}]
      [:div.viewport-overlays
+      ;; TODO: Borrar esto una vez que el layout se realice con la clase de TextLayout
+      ;; por completo.
+
       ;; The behaviour inside a foreign object is a bit different that in plain HTML so we wrap
-      ;; inside a foreign object "dummy" so this awkward behaviour is take into account
-      [:svg {:style {:top 0 :left 0 :position "fixed" :width "100%" :height "100%" :opacity (when-not (dbg/enabled? :html-text) 0)}}
+      ;; inside a foreign object "dummy" so this awkward behaviour is take into account.
+      #_[:svg {:style {:top 0 :left 0 :position "fixed" :width "100%" :height "100%" :opacity (when-not (dbg/enabled? :html-text) 0)}}
        [:foreignObject {:x 0 :y 0 :width "100%" :height "100%"}
         [:div {:style {:pointer-events (when-not (dbg/enabled? :html-text) "none")
                        ;; some opacity because to debug auto-width events will fill the screen

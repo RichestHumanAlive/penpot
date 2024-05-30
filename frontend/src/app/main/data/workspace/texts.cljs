@@ -48,29 +48,33 @@
                        modified-object)))))))
 
 (defn update-text-shape-content
-  [id content update-name?]
-  (ptk/reify ::update-text-shape-content
-    ptk/WatchEvent
-    (watch [_ state _]
-      (let [objects      (wsh/lookup-page-objects state)
-            shape        (get objects id)
-            modifiers    (get-in state [:workspace-text-modifier id])
-            new-shape?   (nil? (:content shape))]
-        (rx/of
-         (dch/update-shapes
-          [id]
-          (fn [shape]
-            (let [{:keys [width height position-data]} modifiers]
-              (let [new-shape (-> shape
-                        (assoc :content content)
-                        #_(cond-> position-data
-                          (assoc :position-data position-data))
-                        #_(cond-> (and update-name? (some? name))
-                          (assoc :name name))
-                        (cond-> (or (some? width) (some? height))
-                          (gsh/transform-shape (ctm/change-size shape width height))))]
-                new-shape)))
-          {:undo-group (when new-shape? id)}))))))
+  ([id content]
+   (update-text-shape-content id content false nil))
+  ([id content update-name?]
+   (update-text-shape-content id content update-name? nil))
+  ([id content update-name? name]
+   (ptk/reify ::update-text-shape-content
+     ptk/WatchEvent
+     (watch [_ state _]
+       (let [objects      (wsh/lookup-page-objects state)
+             shape        (get objects id)
+             modifiers    (get-in state [:workspace-text-modifier id])
+             new-shape?   (nil? (:content shape))]
+         (rx/of
+          (dch/update-shapes
+           [id]
+           (fn [shape]
+             (let [{:keys [width height position-data]} modifiers]
+               (let [new-shape (-> shape
+                                   (assoc :content content)
+                                   #_(cond-> position-data
+                                       (assoc :position-data position-data))
+                                   (cond-> (and update-name? (some? name))
+                                     (assoc :name name))
+                                   (cond-> (or (some? width) (some? height))
+                                     (gsh/transform-shape (ctm/change-size shape width height))))]
+                 new-shape)))
+           {:undo-group (when new-shape? id)})))))))
 
 ;; -- Editor
 

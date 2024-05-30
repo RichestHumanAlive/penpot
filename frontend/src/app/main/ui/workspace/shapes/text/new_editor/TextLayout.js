@@ -118,11 +118,9 @@ export class TextLayout {
    *       el propio editor de texto, algo como `fastLayout` y otro
    *       más lento que haga el layout a partir de un Content de texto.
    *
-   *
-   *
-   *
-   *
-   *
+   * TODO: Añadir algo como `partialLayoutFromElement` que nos permita
+   *       generar la info del layout pero a partir de un nodo y no
+   *       de todo el contenido.
    */
   layoutFromElement(element) {
     this.$setLayoutSizeFromElement(element);

@@ -87,6 +87,19 @@
   [layout]
   (mapv #(from-layout-text %) layout))
 
+(defn from-text-attrs
+  [options]
+  #js {:fontFamily (:font-family options)
+       :fontSize (:font-size options)
+       :fontStyle (:font-style options)
+       :fontWeight (:font-weight options)
+       :fontVariant (:font-variant-id options)
+       :lineHeight (:line-height options)
+       :letterSpacing (:letter-spacing options)
+       :textTransform (:text-transform options)
+       :textAlign (:text-align options)
+       :textDecoration (:text-decoration options)})
+
 (mf/defc text-editor-html
   "Text editor (HTML)"
   {::mf/wrap [mf/memo]
@@ -159,11 +172,13 @@
        ;; NOTE: I don't like this. Too much initialization.
        (let [keys [(events/listen js/document "keyup" on-key-up)]
              text-editor (mf/ref-val text-editor-ref)
-             text-editor-instance (impl/TextEditor. text-editor)]
+             text-editor-options #js { :defaults (from-text-attrs text/default-text-attrs) }
+             text-editor-instance (impl/TextEditor. text-editor text-editor-options)]
          (mf/set-ref-val! text-editor-instance-ref text-editor-instance)
          (.addEventListener text-editor-instance "change" on-change)
          #_(st/emit! (dwt/update-editor text-editor-instance))
          (when (some? content)
+           (js/console.log "bullshit")
            (impl/setContent text-editor-instance (clj->js content)
             #js {:selectAll true}))
 

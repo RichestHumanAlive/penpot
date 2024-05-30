@@ -2,7 +2,48 @@ import clipboard from "./clipboard/index.js";
 import commands from "./commands/index.js";
 import ChangeController from './ChangeController.js';
 import ContentValidation from './ContentValidation.js';
-import ContentTransform from './ContentTransform.js';
+import ContentTransform, { paragraphAttrs, textAttrs } from './ContentTransform.js';
+
+function caretFromPoint(x, y) {
+  if ('caretPositionFromPoint' in document) {
+    return document.caretPositionFromPoint(x, y);
+  } else if ('caretRangeFromPoint' in document) {
+    const caretRange = document.caretRangeFromPoint(x, y);
+    return {
+      offsetNode: caretRange.anchorNode,
+      offset: caretRange.anchorOffset,
+      getClientRect() {
+        return caretRange.getBoundingClientRect();
+      }
+    };
+  } else {
+    const selection = document.getSelection();
+    const range = selection.getRangeAt(0);
+    const clonedRange = range.cloneRange();
+    if (!clonedRange.collapsed) {
+      clonedRange.collapse();
+    }
+    return {
+      offsetNode: clonedRange.anchorNode,
+      offset: clonedRange.anchorOffset,
+      getClientRect() {
+        return clonedRange.getBoundingClientRect();
+      }
+    };
+  }
+}
+
+/**
+ * @typedef {object} TextEditorDefaults
+ * @property {}
+ */
+
+/**
+ * @typedef {object} TextEditorOptions
+ * @property {boolean} [autofocus]
+ * @property {boolean} [autoselect]
+ * @property {TextEditorDefaults} [defaults]
+ */
 
 export class TextEditor extends EventTarget {
   /**
@@ -26,15 +67,33 @@ export class TextEditor extends EventTarget {
   $changeController = null;
 
   /**
+   * @type {TextEditorDefaults}
+   */
+  $defaults = {
+    fontFamily: "sourcesanspro",
+    fontVariant: "regular",
+    fontSize: "14",
+    fontWeight: "400",
+    fontStyle: "normal",
+    lineHeight: "1.2",
+    letterSpacing: "0",
+    textTransform: "none",
+    textAlign: "left",
+    textDecoration: "none"
+  };
+
+  /**
    *
    * @param {Element} element
-   * @param {TextEditorOptions} options
+   * @param {TextEditorOptions} [options]
    */
   constructor(element, options) {
     super();
 
     this.$changeController = new ChangeController(this);
+
     this.$element = element;
+
     this.$events = {
       beforeinput: this.$onBeforeInput,
       input: this.$onInput,
@@ -50,11 +109,18 @@ export class TextEditor extends EventTarget {
       keydown: this.$onKeyDown,
       keyup: this.$onKeyUp,
     };
+
     this.$setup();
+
+    if (options?.defaults) {
+      console.log('Setting editor defaults', options.defaults)
+      this.$defaults = options.defaults
+    }
 
     if (options?.autofocus ?? true) {
       this.focus();
     }
+
     if (options?.autoselect ?? true) {
       this.selectAll();
     }
@@ -96,6 +162,17 @@ export class TextEditor extends EventTarget {
     return element
   }
 
+  $createStyle(attrs, defaults, options) {
+    const style = {};
+    for (const [, elementStyle, styleUnits] of attrs) {
+      const value = options?.style?.[elementStyle] ?? defaults?.[elementStyle];
+      if (value) {
+        style[elementStyle] = `${value}${styleUnits ?? ""}`;
+      }
+    }
+    return style
+  }
+
   $createRoot() {
     return this.$createElement(
       "div",
@@ -104,23 +181,27 @@ export class TextEditor extends EventTarget {
           root: true,
         },
       },
-      [this.createBlock('Hello, World!')]
+      [this.createBlock(' ')]
     );
   }
 
-  createBlock(data) {
+  createBlock(data = '', options) {
+    const style = this.$createStyle(paragraphAttrs, this.$defaults, options);
     return this.$createElement('div', {
       dataset: {
         block: true
-      }
-    }, [this.createInline(data)])
+      },
+      style: style
+    }, [this.createText(data)])
   }
 
-  createInline(data) {
+  createText(data, options) {
+    const style = this.$createStyle(textAttrs, this.$defaults, options);
     return this.$createElement('span', {
       dataset: {
         text: true
-      }
+      },
+      style: style
     }, [document.createTextNode(data)])
   }
 
@@ -206,6 +287,14 @@ export class TextEditor extends EventTarget {
     // console.log(e);
     document.addEventListener("selectionchange", this.$onSelectionChange);
     this.$selection = document.getSelection();
+    /*
+    console.log(this.$selection.anchorNode);
+    if (!this.$selection.anchorNode) {
+      const firstText = this.$element.querySelector('[data-text]').firstChild
+      this.$selection.collapse(firstText, 0);
+      console.log(this.$selection.anchorNode, this.$selection.anchorOffset);
+    }
+    */
   };
 
   $onBlur = (e) => {
@@ -255,20 +344,20 @@ export class TextEditor extends EventTarget {
     }
     const root = content;
     const rootNode = this.$element.querySelector('[data-root]')
-                  ?? document.createElement("div");
+                  ?? this.$createElement("div");
     ContentTransform.applyRootAttrs(rootNode, root);
     rootNode.dataset.root = true;
     const paragraphSet = root.children[0];
     for (const paragraph of paragraphSet.children) {
-      const paragraphNode = document.createElement("div");
+      const paragraphNode = this.$createElement("div");
       ContentTransform.applyParagraphAttrs(paragraphNode, paragraph);
       paragraphNode.dataset.block = true;
       for (const text of paragraph.children) {
-        const textNode = document.createElement("span");
+        const textNode = this.$createElement("span");
         ContentTransform.applyTextAttrs(textNode, text);
         textNode.dataset.text = true;
         if (!text.text) {
-          textNode.append(document.createElement("br"));
+          textNode.appendChild(this.$createElement("br"));
         } else {
           textNode.textContent = text.text;
         }

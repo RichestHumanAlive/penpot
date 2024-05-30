@@ -11,6 +11,10 @@
 import TextEditorImpl from './new_editor/TextEditor';
 import textLayoutImpl from './new_editor/TextLayout';
 
+console.log(cljs.core.ObjMap.fromObject(['hola'], {
+  hola: 'test!'
+}))
+
 export function setContent(editor, newContent, options) {
   return editor.setContent(newContent, options);
 }
@@ -31,8 +35,8 @@ export function layoutFromEditor(editor) {
   return textLayout.layoutFromElement(editor.element);
 }
 
-export const TextEditor = TextEditorImpl
-export const textLayout = textLayoutImpl
+export const TextEditor = TextEditorImpl;
+export const textLayout = textLayoutImpl;
 
 export default {
   TextEditor,
