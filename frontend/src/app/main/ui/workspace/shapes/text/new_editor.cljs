@@ -64,29 +64,6 @@
   [node]
   (from-content-root node))
 
-(defn from-layout-text
-  [layout-text]
-  {:text (unchecked-get layout-text "text")
-   :x (unchecked-get layout-text "x")
-   :y (unchecked-get layout-text "y")
-   :x1 (unchecked-get layout-text "x1")
-   :y1 (unchecked-get layout-text "y1")
-   :x2 (unchecked-get layout-text "x2")
-   :y2 (unchecked-get layout-text "y2")
-   :line-height (unchecked-get layout-text "lineHeight")
-   :letter-spacing (unchecked-get layout-text "letterSpacing")
-   :font-family (unchecked-get layout-text "fontFamily")
-   :font-size (unchecked-get layout-text "fontSize")
-   :font-weight (unchecked-get layout-text "fontWeight")
-   :font-style (unchecked-get layout-text "fontStyle")
-   :font-variant (unchecked-get layout-text "fontVariant")
-   :text-transform (unchecked-get layout-text "textTransform")
-   :text-decoration (unchecked-get layout-text "textDecoration")})
-
-(defn from-layout
-  [layout]
-  (mapv #(from-layout-text %) layout))
-
 (defn from-text-attrs
   [options]
   #js {:fontFamily (:font-family options)
@@ -148,7 +125,7 @@
                  new-layout (impl/layoutFromEditor text-editor-instance)]
              (when (some? new-content)
                (st/emit! (dwt/update-text-shape-content shape-id (from-content new-content) true))
-               (st/emit! (dwt/update-text-shape-layout shape-id (from-layout new-layout)))
+               (st/emit! (dwt/update-text-shape-layout shape-id new-layout))
                (js/console.log "new-layout" new-layout)
                (js/console.log "new-content" new-content)))))
 
@@ -227,8 +204,9 @@
   {::mf/wrap [mf/memo]
    ::mf/wrap-props false
    ::mf/forward-ref true}
-  [{:keys [shape] :as props} _]
+  [{:keys [shape modifiers] :as props} _]
   (let [shape-id  (dm/get-prop shape :id)
+        modifiers (dm/get-in modifiers [shape-id :modifiers])
 
         clip-id   (dm/str "text-edition-clip" shape-id)
 
@@ -240,7 +218,10 @@
 
         shape (cond-> shape
                 (some? text-modifier)
-                (dwt/apply-text-modifier text-modifier))
+                (dwt/apply-text-modifier text-modifier)
+
+                (some? modifiers)
+                (gsh/transform-shape modifiers))
 
         bounds (gst/shape->rect shape)
 

@@ -1,20 +1,28 @@
+/**
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * Copyright (c) KALEIDOS INC
+ */
+
 import clipboard from "./clipboard/index.js";
 import commands from "./commands/index.js";
-import ChangeController from './ChangeController.js';
-import ContentValidation from './ContentValidation.js';
-import ContentTransform, { paragraphAttrs, textAttrs } from './ContentTransform.js';
+import ChangeController from "./ChangeController.js";
+import ContentValidation from "./ContentValidation.js";
+import ContentTransform, { paragraphAttrs, textAttrs } from "./ContentTransform.js";
 
 function caretFromPoint(x, y) {
-  if ('caretPositionFromPoint' in document) {
+  if ("caretPositionFromPoint" in document) {
     return document.caretPositionFromPoint(x, y);
-  } else if ('caretRangeFromPoint' in document) {
+  } else if ("caretRangeFromPoint" in document) {
     const caretRange = document.caretRangeFromPoint(x, y);
     return {
       offsetNode: caretRange.anchorNode,
       offset: caretRange.anchorOffset,
       getClientRect() {
         return caretRange.getBoundingClientRect();
-      }
+      },
     };
   } else {
     const selection = document.getSelection();
@@ -28,7 +36,7 @@ function caretFromPoint(x, y) {
       offset: clonedRange.anchorOffset,
       getClientRect() {
         return clonedRange.getBoundingClientRect();
-      }
+      },
     };
   }
 }
@@ -79,7 +87,7 @@ export class TextEditor extends EventTarget {
     letterSpacing: "0",
     textTransform: "none",
     textAlign: "left",
-    textDecoration: "none"
+    textDecoration: "none",
   };
 
   /**
@@ -113,8 +121,8 @@ export class TextEditor extends EventTarget {
     this.$setup();
 
     if (options?.defaults) {
-      console.log('Setting editor defaults', options.defaults)
-      this.$defaults = options.defaults
+      console.log("Setting editor defaults", options.defaults);
+      this.$defaults = options.defaults;
     }
 
     if (options?.autofocus ?? true) {
@@ -139,27 +147,27 @@ export class TextEditor extends EventTarget {
   }
 
   $createElement(tag, attribs, children) {
-    const element = document.createElement(tag)
+    const element = document.createElement(tag);
     if (attribs) {
       for (const [name, value] of Object.entries(attribs)) {
-        if (name === 'style') {
+        if (name === "style") {
           for (const [styleName, styleValue] of Object.entries(value)) {
-            element.style[styleName] = styleValue
+            element.style[styleName] = styleValue;
           }
-        } else if (name === 'dataset') {
+        } else if (name === "dataset") {
           for (const [dataName, dataValue] of Object.entries(value)) {
-            element.dataset[dataName] = dataValue
+            element.dataset[dataName] = dataValue;
           }
         } else {
-          element.setAttribute(name, value)
+          element.setAttribute(name, value);
         }
       }
     }
     if (Array.isArray(children)) {
-      element.append(...children)
+      element.append(...children);
     }
-    console.log(tag, attribs, children, element)
-    return element
+    console.log(tag, attribs, children, element);
+    return element;
   }
 
   $createStyle(attrs, defaults, options) {
@@ -170,7 +178,7 @@ export class TextEditor extends EventTarget {
         style[elementStyle] = `${value}${styleUnits ?? ""}`;
       }
     }
-    return style
+    return style;
   }
 
   $createRoot() {
@@ -181,28 +189,36 @@ export class TextEditor extends EventTarget {
           root: true,
         },
       },
-      [this.createBlock(' ')]
+      [this.createBlock(" ")],
     );
   }
 
-  createBlock(data = '', options) {
+  createBlock(data = "", options) {
     const style = this.$createStyle(paragraphAttrs, this.$defaults, options);
-    return this.$createElement('div', {
-      dataset: {
-        block: true
+    return this.$createElement(
+      "div",
+      {
+        dataset: {
+          block: true,
+        },
+        style: style,
       },
-      style: style
-    }, [this.createText(data)])
+      [this.createText(data)],
+    );
   }
 
   createText(data, options) {
     const style = this.$createStyle(textAttrs, this.$defaults, options);
-    return this.$createElement('span', {
-      dataset: {
-        text: true
+    return this.$createElement(
+      "span",
+      {
+        dataset: {
+          text: true,
+        },
+        style: style,
       },
-      style: style
-    }, [document.createTextNode(data)])
+      [document.createTextNode(data)],
+    );
   }
 
   $setup() {
@@ -343,8 +359,7 @@ export class TextEditor extends EventTarget {
       throw new TypeError("Invalid content");
     }
     const root = content;
-    const rootNode = this.$element.querySelector('[data-root]')
-                  ?? this.$createElement("div");
+    const rootNode = this.$element.querySelector("[data-root]") ?? this.$createElement("div");
     ContentTransform.applyRootAttrs(rootNode, root);
     rootNode.dataset.root = true;
     const paragraphSet = root.children[0];

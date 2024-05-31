@@ -1,3 +1,13 @@
+/**
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * Copyright (c) KALEIDOS INC
+ */
+
+import PositionData from "./PositionData.js";
+
 export class TextLayout {
   $layoutRange = null;
   $layoutElement = null;
@@ -31,13 +41,20 @@ export class TextLayout {
     this.$layoutElement.style.position = "absolute";
 
     const prevLayoutElement = document.querySelector("[data-layout]");
-    if (prevLayoutElement) {
+    if (prevLayoutElement && prevLayoutElement !== this.$layoutElement) {
       prevLayoutElement.parentElement.replaceChild(this.$layoutElement, prevLayoutElement);
     } else {
       document.body.appendChild(this.$layoutElement);
     }
   }
 
+  /**
+   *
+   * @param {Node} node
+   * @param {number} start
+   * @param {number} end
+   * @returns {DOMRect[]}
+   */
   $getRangeRects(node, start, end) {
     const range = this.$layoutRange;
     range.setStart(node, start);
@@ -45,6 +62,13 @@ export class TextLayout {
     return [...range.getClientRects()].filter((clientRect) => clientRect.width > 0);
   }
 
+  /**
+   *
+   * @param {HTMLElement} parent
+   * @param {Node} textNode
+   * @param {string} textAlign
+   * @returns {LayoutNode}
+   */
   $layoutTextNode(parent, textNode, textAlign) {
     const content = textNode.textContent;
     const textSize = content.length;
@@ -121,6 +145,9 @@ export class TextLayout {
    * TODO: Añadir algo como `partialLayoutFromElement` que nos permita
    *       generar la info del layout pero a partir de un nodo y no
    *       de todo el contenido.
+   *
+   * @param {HTMLElement}
+   * @returns {PersistentHashMap<Keyword, *>}
    */
   layoutFromElement(element) {
     this.$setLayoutSizeFromElement(element);
@@ -133,30 +160,7 @@ export class TextLayout {
         );
       })
       .filter((layoutNode) => layoutNode.rect)
-      .map((layoutNode) => {
-        return {
-          direction: layoutNode.node.style.getPropertyValue("text-direction") || "ltr",
-          fills: [{ "fill-color": "#000000", "fill-opacity": 1 }],
-          fontFamily: layoutNode.node.style.getPropertyValue("font-family"),
-          fontSize: layoutNode.node.style.getPropertyValue("font-size"),
-          fontStyle: layoutNode.node.style.getPropertyValue("font-style"),
-          fontWeight: layoutNode.node.style.getPropertyValue("font-weight"),
-          fontVariant: layoutNode.node.style.getPropertyValue("font-variant"),
-          lineHeight: layoutNode.node.style.getPropertyValue("line-height"),
-          letterSpacing: layoutNode.node.style.getPropertyValue("letter-spacing"),
-          text: layoutNode.text,
-          textDecoration: layoutNode.node.style.getPropertyValue("text-decoration"),
-          textTransform: layoutNode.node.style.getPropertyValue("text-transform"),
-          x: layoutNode.rect.x,
-          y: layoutNode.rect.y,
-          height: layoutNode.rect.height,
-          width: layoutNode.rect.width,
-          x1: layoutNode.rect.x,
-          y1: layoutNode.rect.y,
-          x2: layoutNode.rect.x + layoutNode.rect.width,
-          y2: layoutNode.rect.y + layoutNode.rect.height,
-        };
-      });
+      .map(PositionData.mapLayoutNode);
     return positionData;
   }
 }
