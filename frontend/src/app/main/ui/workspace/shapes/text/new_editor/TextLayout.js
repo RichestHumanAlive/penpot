@@ -23,6 +23,12 @@ export class TextLayout {
     this.$setupLayout();
   }
 
+  /**
+   * Sets the layout element size.
+   *
+   * @param {HTMLElement} element
+   * @returns {TextLayout}
+   */
   $setLayoutSizeFromElement(element) {
     return this.$setLayoutSize(element.parentElement.clientWidth, element.parentElement.clientHeight);
   }
@@ -152,12 +158,15 @@ export class TextLayout {
   layoutFromElement(element) {
     this.$setLayoutSizeFromElement(element);
     this.$layoutElement.replaceChildren(element.cloneNode(true));
-    const positionData = Array.from(this.$layoutElement.querySelectorAll("[data-text]"))
+    const positionData = Array
+      .from(this.$layoutElement.querySelectorAll("[data-inline]"))
       .flatMap((inlineNode) => {
         const textAlign = inlineNode.parentElement.style.textAlign || "left";
-        return Array.from(inlineNode.childNodes).flatMap((childNode) =>
-          this.$layoutTextNode(inlineNode, childNode, textAlign),
-        );
+        return Array
+          .from(inlineNode.childNodes)
+          .flatMap((childNode) =>
+            this.$layoutTextNode(inlineNode, childNode, textAlign),
+          );
       })
       .filter((layoutNode) => layoutNode.rect)
       .map(PositionData.mapLayoutNode);
@@ -166,7 +175,7 @@ export class TextLayout {
 }
 
 /**
- *
+ * Instance of the TextLayout.
  *
  * @type {TextLayout}
  */

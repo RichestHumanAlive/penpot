@@ -8,15 +8,15 @@ export function insertText(editor, event) {
   if (editor.selection.isCollapsed) {
     const caretNode = editor.selection.anchorNode;
     console.log('caretNode', caretNode, 'caretOffset', editor.selection.anchorOffset)
-    const needsBlock = (caretNode.nodeType === Node.ELEMENT_NODE && 'root' in caretNode.dataset)
+    const needsParagraph = (caretNode.nodeType === Node.ELEMENT_NODE && 'root' in caretNode.dataset)
                   || (caretNode.nodeType === Node.TEXT_NODE && 'root' in caretNode.parentNode.dataset);
-    console.log('needsBlock', needsBlock)
-    if (needsBlock) {
+    console.log('needsParagraph', needsParagraph)
+    if (needsParagraph) {
       event.preventDefault();
-      const newBlock = editor.createBlock(event.data);
-      console.log('newBlock', newBlock);
-      const newText = newBlock.querySelector('[data-text]').firstChild;
-      range.insertNode(newBlock);
+      const newParagraph = editor.createParagraph(event.data);
+      console.log('newParagraph', newParagraph);
+      const newText = newParagraph.querySelector('[data-inline]').firstChild;
+      range.insertNode(newParagraph);
       range.selectNode(newText);
       range.collapse(false);
     }

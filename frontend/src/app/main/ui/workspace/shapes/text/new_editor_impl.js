@@ -11,26 +11,50 @@
 import TextEditorImpl from './new_editor/TextEditor';
 import textLayoutImpl from './new_editor/TextLayout';
 
-console.log(cljs.core.ObjMap.fromObject(['hola'], {
-  hola: 'test!'
-}))
-
+/**
+ *
+ * @param {TextEditor} editor
+ * @param {Content} newContent
+ * @param {*} options
+ * @returns {}
+ */
 export function setContent(editor, newContent, options) {
   return editor.setContent(newContent, options);
 }
 
+/**
+ *
+ * @param {TextEditor} editor
+ * @returns {Content}
+ */
 export function getContent(editor) {
   return editor.getContent();
 }
 
+/**
+ *
+ * @param {Content} content
+ * @param {*} options
+ * @returns {ContentLayout}
+ */
 export function layoutFromContent(content, options) {
   return textLayout.layoutFromContent(content, options);
 }
 
+/**
+ *
+ * @param {HTMLElement} element
+ * @returns {ContentLayout}
+ */
 export function layoutFromElement(element) {
   return textLayout.layoutFromElement(element);
 }
 
+/**
+ *
+ * @param {TextEditor} editor
+ * @returns {ContentLayout}
+ */
 export function layoutFromEditor(editor) {
   return textLayout.layoutFromElement(editor.element);
 }

@@ -22,61 +22,6 @@
    [goog.events :as events]
    [rumext.v2 :as mf]))
 
-(defn from-content-text
-  [node]
-  {:text (unchecked-get node "text")
-   :typography-ref-id (unchecked-get node "typography-ref-id")
-   :typography-ref-file (unchecked-get node "typography-ref-file")
-   :fond-id (unchecked-get node "font-id")
-   :font-variant-id (unchecked-get node "font-variant-id")
-   :font-family (unchecked-get node "font-family")
-   :font-size (unchecked-get node "font-size")
-   :font-weight (unchecked-get node "font-weight")
-   :font-style (unchecked-get node "font-style")
-   :line-height (unchecked-get node "line-height")
-   :letter-spacing (unchecked-get node "letter-spacing")
-   :text-decoration (unchecked-get node "text-decoration")
-   :text-transform (unchecked-get node "text-transform")
-   :fills (unchecked-get node "fills")})
-
-(defn from-content-paragraph
-  [node]
-  {:type (unchecked-get node "type")
-   :text-align (unchecked-get node "text-align")
-   :text-direction (unchecked-get node "text-direction")
-   :line-height (unchecked-get node "line-height")
-   :font-size (unchecked-get node "font-size")
-   :children (mapv #(from-content-text %)
-                   (.-children node))})
-
-(defn from-content-paragraph-set
-  [node]
-  {:type (.-type node)
-   :children (mapv #(from-content-paragraph %) (.-children node))})
-
-(defn from-content-root
-  [node]
-  (cond-> {:type (unchecked-get node "type")
-           :vertical-align (unchecked-get node "vertica-align")
-           :children (mapv #(from-content-paragraph-set %) (.-children node))}))
-
-(defn from-content
-  [node]
-  (from-content-root node))
-
-(defn from-text-attrs
-  [options]
-  #js {:fontFamily (:font-family options)
-       :fontSize (:font-size options)
-       :fontStyle (:font-style options)
-       :fontWeight (:font-weight options)
-       :fontVariant (:font-variant-id options)
-       :lineHeight (:line-height options)
-       :letterSpacing (:letter-spacing options)
-       :textTransform (:text-transform options)
-       :textAlign (:text-align options)
-       :textDecoration (:text-decoration options)})
-
 (mf/defc text-editor-html
   "Text editor (HTML)"
   {::mf/wrap [mf/memo]
@@ -99,7 +44,7 @@
                  container (mf/ref-val text-editor-container-ref)
                  new-content (impl/getContent text-editor-instance)]
              (when (some? new-content)
-               (st/emit! (dwt/update-text-shape-content shape-id (from-content new-content) true)))
+               (st/emit! (dwt/update-text-shape-content shape-id new-content true)))
              (dom/set-style! container "opacity" 0))))
 
         on-focus
@@ -113,9 +58,11 @@
          (fn [e]
            (js/console.log (.-type e) e)
            (let [text-editor-instance (mf/ref-val text-editor-instance-ref)
-                 new-content (impl/getContent text-editor-instance)]
+                 new-content (impl/getContent text-editor-instance)
+                 new-layout (impl/layoutFromEditor text-editor-instance)]
              (when (some? new-content)
-               (st/emit! (dwt/update-text-shape-content shape-id (from-content new-content) false))))))
+               (st/emit! (dwt/update-text-shape-content shape-id new-content false))
+               (st/emit! (dwt/update-text-shape-layout shape-id new-layout))))))
 
         on-change
         (mf/use-fn
@@ -124,10 +71,8 @@
                  new-content (impl/getContent text-editor-instance)
                  new-layout (impl/layoutFromEditor text-editor-instance)]
              (when (some? new-content)
-               (st/emit! (dwt/update-text-shape-content shape-id (from-content new-content) true))
-               (st/emit! (dwt/update-text-shape-layout shape-id new-layout))
-               (js/console.log "new-layout" new-layout)
-               (js/console.log "new-content" new-content)))))
+               (st/emit! (dwt/update-text-shape-content shape-id new-content true))
+               (st/emit! (dwt/update-text-shape-layout shape-id new-layout))))))
 
         on-click
         (mf/use-fn
@@ -149,14 +94,14 @@
        ;; NOTE: I don't like this. Too much initialization.
        (let [keys [(events/listen js/document "keyup" on-key-up)]
              text-editor (mf/ref-val text-editor-ref)
-             text-editor-options #js { :defaults (from-text-attrs text/default-text-attrs) }
+             text-editor-options #js { :defaults text/default-text-attrs }
              text-editor-instance (impl/TextEditor. text-editor text-editor-options)]
          (mf/set-ref-val! text-editor-instance-ref text-editor-instance)
          (.addEventListener text-editor-instance "change" on-change)
          #_(st/emit! (dwt/update-editor text-editor-instance))
          (when (some? content)
            (js/console.log "bullshit")
-           (impl/setContent text-editor-instance (clj->js content)
+           (impl/setContent text-editor-instance content
             #js {:selectAll true}))
 
          ;; NOTE: I don't like this. I would prefer
