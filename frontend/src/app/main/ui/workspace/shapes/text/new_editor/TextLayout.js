@@ -55,6 +55,7 @@ export class TextLayout {
   }
 
   /**
+   * Returns all the range rects.
    *
    * @param {Node} node
    * @param {number} start
@@ -69,6 +70,7 @@ export class TextLayout {
   }
 
   /**
+   * Layouts a text node.
    *
    * @param {HTMLElement} parent
    * @param {Node} textNode
@@ -169,6 +171,17 @@ export class TextLayout {
           );
       })
       .filter((layoutNode) => layoutNode.rect)
+      .map((layoutNode) => { // TODO: No me gusta.
+        const x = parseFloat(element.dataset.x);
+        const y = parseFloat(element.dataset.y);
+        layoutNode.rect.x += x;
+        layoutNode.rect.y += y;
+        layoutNode.rect.x1 += x;
+        layoutNode.rect.y1 += y;
+        layoutNode.rect.x2 += x;
+        layoutNode.rect.y2 += y;
+        return layoutNode;
+      })
       .map(PositionData.mapLayoutNode);
     return positionData;
   }

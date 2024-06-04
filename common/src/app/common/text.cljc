@@ -448,7 +448,3 @@
                         (d/enumerate)
                         (mapv (fn [[idx node]]
                                 (index-content node cur-path idx))))))))))
-
-(defn content-v1?
-  [content]
-  (= "root" (:type content)))

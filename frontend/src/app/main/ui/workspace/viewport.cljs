@@ -281,22 +281,24 @@
     [:div.viewport {:style #js {"--zoom" zoom} :data-testid "viewport"}
      [:& top-bar/top-bar {:layout layout}]
      [:div.viewport-overlays
-      ;; TODO: Borrar esto una vez que el layout se realice con la clase de TextLayout
-      ;; por completo.
-
       ;; The behaviour inside a foreign object is a bit different that in plain HTML so we wrap
       ;; inside a foreign object "dummy" so this awkward behaviour is take into account.
-      #_[:svg {:style {:top 0 :left 0 :position "fixed" :width "100%" :height "100%" :opacity (when-not (dbg/enabled? :html-text) 0)}}
-       [:foreignObject {:x 0 :y 0 :width "100%" :height "100%"}
-        [:div {:style {:pointer-events (when-not (dbg/enabled? :html-text) "none")
+
+      ;; NOTE: This is necessary for the "v1" version of the text editor, `stvh/viewport-texts`
+      ;; is a component that re-renders the content of the text editor so we can compute
+      ;; the text layout.
+      (when (= st/*text-editor* "v1")
+        [:svg {:style {:top 0 :left 0 :position "fixed" :width "100%" :height "100%" :opacity (when-not (dbg/enabled? :html-text) 0)}}
+         [:foreignObject {:x 0 :y 0 :width "100%" :height "100%"}
+          [:div {:style {:pointer-events (when-not (dbg/enabled? :html-text) "none")
                        ;; some opacity because to debug auto-width events will fill the screen
-                       :opacity 0.6}}
-         [:& stvh/viewport-texts
-          {:key (dm/str "texts-" page-id)
-           :page-id page-id
-           :objects objects
-           :modifiers modifiers
-           :edition edition}]]]]
+                         :opacity 0.6}}
+           [:& stvh/viewport-texts
+            {:key (dm/str "texts-" page-id)
+             :page-id page-id
+             :objects objects
+             :modifiers modifiers
+             :edition edition}]]]])
 
       (when show-comments?
         [:& comments/comments-layer {:vbox vbox

@@ -6,94 +6,36 @@
  * Copyright (c) KALEIDOS INC
  */
 
-/*
-
-(defn from-content-text
-  [node]
-  {:text (unchecked-get node "text")
-   :typography-ref-id (unchecked-get node "typography-ref-id")
-   :typography-ref-file (unchecked-get node "typography-ref-file")
-   :fond-id (unchecked-get node "font-id")
-   :font-variant-id (unchecked-get node "font-variant-id")
-   :font-family (unchecked-get node "font-family")
-   :font-size (unchecked-get node "font-size")
-   :font-weight (unchecked-get node "font-weight")
-   :font-style (unchecked-get node "font-style")
-   :line-height (unchecked-get node "line-height")
-   :letter-spacing (unchecked-get node "letter-spacing")
-   :text-decoration (unchecked-get node "text-decoration")
-   :text-transform (unchecked-get node "text-transform")
-   :fills (unchecked-get node "fills")})
-
-(defn from-content-paragraph
-  [node]
-  {:type (unchecked-get node "type")
-   :text-align (unchecked-get node "text-align")
-   :text-direction (unchecked-get node "text-direction")
-   :line-height (unchecked-get node "line-height")
-   :font-size (unchecked-get node "font-size")
-   :children (mapv #(from-content-text %)
-                   (.-children node))})
-
-(defn from-content-paragraph-set
-  [node]
-  {:type (.-type node)
-   :children (mapv #(from-content-paragraph %) (.-children node))})
-
-(defn from-content-root
-  [node]
-  (cond-> {:type (unchecked-get node "type")
-           :vertical-align (unchecked-get node "vertica-align")
-           :children (mapv #(from-content-paragraph-set %) (.-children node))}))
-
-(defn from-content
-  [node]
-  (from-content-root node))
-
-(defn from-text-attrs
-  [options]
-  #js {:fontFamily (:font-family options)
-       :fontSize (:font-size options)
-       :fontStyle (:font-style options)
-       :fontWeight (:font-weight options)
-       :fontVariant (:font-variant-id options)
-       :lineHeight (:line-height options)
-       :letterSpacing (:letter-spacing options)
-       :textTransform (:text-transform options)
-       :textAlign (:text-align options)
-       :textDecoration (:text-decoration options)})
-*/
-
 import cljs from "goog:cljs.core"
 
-const Keyword = {
-  TYPE: cljs.keyword('type'),
-  CHILDREN: cljs.keyword('children'),
-  TEXT: cljs.keyword('text'),
+export const Keyword = {
+  TYPE: cljs.keyword("type"),
+  CHILDREN: cljs.keyword("children"),
   FONT_ID: cljs.keyword("font-id"),
   FONT_FAMILY: cljs.keyword("font-family"),
   FONT_VARIANT_ID: cljs.keyword("font-variant-id"),
   FONT_SIZE: cljs.keyword("font-size"),
   FONT_WEIGHT: cljs.keyword("font-weight"),
   FONT_STYLE: cljs.keyword("font-style"),
-  LINE_HEIGHT: cljs.keyword("line-height"),
-  LETTER_SPACING: cljs.keyword("letter-spacing"),
+  TEXT: cljs.keyword("text"),
   TEXT_TRANSFORM: cljs.keyword("text-transform"),
   TEXT_ALIGN: cljs.keyword("text-align"),
   TEXT_DECORATION: cljs.keyword("text-decoration"),
   TEXT_DIRECTION: cljs.keyword("text-direction"),
   TYPOGRAPHY_REF_ID: cljs.keyword("typography-ref-id"),
   TYPOGRAPHY_REF_FILE: cljs.keyword("typography-ref-file"),
+  LINE_HEIGHT: cljs.keyword("line-height"),
+  LETTER_SPACING: cljs.keyword("letter-spacing"),
   FILLS: cljs.keyword("fills"),
-}
+};
 
-const ContentTag = {
+export const ContentTag = {
   ROOT: 'div',
   PARAGRAPH: 'div',
   INLINE: 'span'
 }
 
-const ContentType = {
+export const ContentType = {
   ROOT: 'root',
   PARAGRAPH_SET: 'paragraph-set',
   PARAGRAPH: 'paragraph',
@@ -108,7 +50,6 @@ export const paragraphAttrs = [
   [Keyword.FONT_SIZE, "font-size", "px"],
 ];
 
-// [content-node-attr, element-style, style-units]
 export const inlineAttrs = [
   [Keyword.TYPOGRAPHY_REF_ID, "--typography-ref-id"],
   [Keyword.TYPOGRAPHY_REF_FILE, "--typography-ref-file"],
@@ -164,19 +105,35 @@ export function extractStyles(element, attrs) {
   return [Object.keys(styleMap), Object.values(styleMap)];
 }
 
+/**
+ *
+ * @param {ContentRoot} element
+ * @returns {[cljs.keyword[], any[]]}
+ */
 export function extractRootStyles(element) {
   return extractStyles(element, rootAttrs);
 }
 
+/**
+ *
+ * @param {ContentParagraph} element
+ * @returns {[cljs.keyword[], any[]]}
+ */
 export function extractParagraphStyles(element) {
   return extractStyles(element, paragraphAttrs);
 }
 
+/**
+ *
+ * @param {HTMLElement} element
+ * @returns {[cljs.keyword[], any[]]}
+ */
 export function extractTextStyles(element) {
   return extractStyles(element, inlineAttrs);
 }
 
 /**
+ * Sets attributes of an HTMLElement.
  *
  * @param {HTMLElement} element
  * @param {string} name
@@ -296,14 +253,32 @@ export function createElementStyleFromDefaults(attrs, defaults, styles) {
   return style
 }
 
+/**
+ *
+ * @param {TextEditorDefaults} defaults
+ * @param {TextEditorStyles} styles
+ * @returns {ElementStyle}
+ */
 export function createRootElementStyleFromDefaults(defaults, styles) {
   return createElementStyleFromDefaults(rootAttrs, defaults, styles)
 }
 
+/**
+ *
+ * @param {TextEditorDefaults} defaults
+ * @param {TextEditorStyles} styles
+ * @returns {ElementStyle}
+ */
 export function createParagraphElementStyleFromDefaults(defaults, styles) {
   return createElementStyleFromDefaults(paragraphAttrs, defaults, styles)
 }
 
+/**
+ *
+ * @param {TextEditorDefaults} defaults
+ * @param {TextEditorStyles} styles
+ * @returns {ElementStyle}
+ */
 export function createInlineElementStyleFromDefaults(defaults, styles) {
   return createElementStyleFromDefaults(inlineAttrs, defaults, styles)
 }
@@ -318,6 +293,12 @@ export function createParagraphElementStyleFromContentNode(paragraphStyles) {
   return createElementStyleFromContentNode(paragraphAttrs, paragraphStyles);
 }
 
+/**
+ *
+ * @param {TextEditorDefaults} defaults
+ * @param {TextEditorStyles} styles
+ * @returns {HTMLElement}
+ */
 export function createParagraphElement(children, styles) {
   if (children && !Array.isArray(children)) {
     throw new TypeError('Invalid paragraph children, it should be an Array of HTMLElements')
@@ -330,14 +311,29 @@ export function createParagraphElement(children, styles) {
   }, children);
 }
 
+/**
+ *
+ * @param {ContentRoot} root
+ * @returns {HTMLElement}
+ */
 export function createParagraphElementFromContentNode(root) {
   return createParagraphElement([], createParagraphElementStyleFromContentNode(root));
 }
 
+/**
+ *
+ * @param {ContentInline} root
+ * @returns {HTMLElement}
+ */
 export function createInlineElementStyleFromContentNode(inlineStyles) {
   return createElementStyleFromContentNode(inlineAttrs, inlineStyles);
 }
 
+/**
+ *
+ * @param {ContentRoot} root
+ * @returns {HTMLElement}
+ */
 export function createInlineElement(children, styles) {
   if (!Array.isArray(children)) {
     throw new TypeError('Invalid inline children, it should be an Array of strings')
@@ -353,8 +349,16 @@ export function createInlineElement(children, styles) {
   }, children.map((child) => document.createTextNode(child)));
 }
 
+/**
+ *
+ * @param {ContentInline} inline
+ * @returns {HTMLElement}
+ */
 export function createInlineElementFromContentNode(inline) {
-  return createInlineElement([getValue(inline, Keyword.TEXT)], createInlineElementStyleFromContentNode(inline))
+  return createInlineElement(
+    [getValue(inline, Keyword.TEXT)],
+    createInlineElementStyleFromContentNode(inline)
+  )
 }
 
 /**
@@ -695,16 +699,16 @@ export function fromDOM(rootNode) {
 
 /**
  * @typedef {object} TextEditorStyles
- * @property {string} fontFamily
- * @property {string} fontVariant
- * @property {string} fontSize
- * @property {string} fontWeight
- * @property {string} fontStyle
- * @property {string} textTransform
- * @property {string} textAlign
- * @property {string} textDecoration
- * @property {string} lineHeight
- * @property {string} letterSpacing
+ * @property {string} "font-family"
+ * @property {string} "font-variant"
+ * @property {string} "font-size"
+ * @property {string} "font-weight"
+ * @property {string} "font-style"
+ * @property {string} "text-transform"
+ * @property {string} "text-align"
+ * @property {string} "text-decoration"
+ * @property {string} "line-height"
+ * @property {string} "letter-spacing"
  */
 
 /**
@@ -730,27 +734,36 @@ export function getDefaults(defaults) {
 
 export const Content = {
   setAttribute,
+
   validateContent,
   validateText,
   validateParagraph,
   validateParagraphSet,
   validateRoot,
+
   extractStyles,
   extractTextStyles,
   extractParagraphStyles,
   extractRootStyles,
-  createElement,
+
+  createElementStyleFromContentNode,
   createRootElementStyleFromContentNode,
   createParagraphElementStyleFromContentNode,
   createInlineElementStyleFromContentNode,
+
+  createElementStyleFromDefaults,
   createRootElementStyleFromDefaults,
   createParagraphElementStyleFromDefaults,
   createInlineElementStyleFromDefaults,
+
+  createElement,
   createRootElement,
   createParagraphElement,
   createInlineElement,
+
   fromDOM,
   toDOM,
+
   getDefaults,
 };
 

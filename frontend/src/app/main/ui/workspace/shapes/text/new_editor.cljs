@@ -132,6 +132,8 @@
 
      [:div.text-editor-content
       {:ref text-editor-ref
+       :data-x (dm/get-prop shape :x)
+       :data-y (dm/get-prop shape :y)
        :content-editable true
        :role "textbox"
        :aria-multiline true
@@ -168,16 +170,10 @@
                 (some? modifiers)
                 (gsh/transform-shape modifiers))
 
-        bounds (gst/shape->rect shape)
-
-        x      (mth/min (dm/get-prop bounds :x)
-                        (dm/get-prop shape :x))
-        y      (mth/min (dm/get-prop bounds :y)
-                        (dm/get-prop shape :y))
-        width  (mth/max (dm/get-prop bounds :width)
-                        (dm/get-prop shape :width))
-        height (mth/max (dm/get-prop bounds :height)
-                        (dm/get-prop shape :height))]
+        x      (dm/get-prop shape :x)
+        y      (dm/get-prop shape :y)
+        width  (dm/get-prop shape :width)
+        height (dm/get-prop shape :height)]
 
     [:g.text-editor {:clip-path (dm/fmt "url(#%)" clip-id)
                      :transform (dm/str (gsh/transform-matrix shape))}
