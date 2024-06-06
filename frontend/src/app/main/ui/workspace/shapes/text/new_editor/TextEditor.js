@@ -10,6 +10,7 @@ import clipboard from "./clipboard/index.js";
 import commands from "./commands/index.js";
 import ChangeController from "./ChangeController.js";
 import Content from "./Content.js";
+import SelectionHelpers from "./SelectionHelpers.js";
 
 /**
  * @typedef {object} TextEditorDefaults
@@ -56,21 +57,27 @@ export class TextEditor extends EventTarget {
    * @type {TextEditorDefaults}
    */
   $defaults = {
-    fontFamily: "sourcesanspro",
-    fontVariant: "regular",
-    fontSize: "14",
-    fontWeight: "400",
-    fontStyle: "normal",
-    lineHeight: "1.2",
-    letterSpacing: "0",
-    textTransform: "none",
-    textAlign: "left",
-    textDecoration: "none",
+    "--typography-ref-file": null,
+    "--typography-ref-id": null,
+    "--font-id": "sourcesanspro",
+    "--fills": [{
+      "fill-color": "#000000",
+      "fill-opacity": 1
+    }],
+    "font-family": "sourcesanspro",
+    "font-variant": "regular",
+    "font-size": "14",
+    "font-weight": "400",
+    "font-style": "normal",
+    "line-height": "1.2",
+    "letter-spacing": "0",
+    "text-transform": "none",
+    "text-align": "left",
+    "text-decoration": "none",
   };
 
   /**
-   *
-   * @param {Element} element
+   * @param {Element} element Element that
    * @param {TextEditorOptions} [options]
    */
   constructor(element, options) {
@@ -102,14 +109,6 @@ export class TextEditor extends EventTarget {
       console.log("Setting editor defaults", Content.getDefaults(options.defaults));
       this.$defaults = Content.getDefaults(options.defaults);
     }
-
-    if (options?.autofocus ?? true) {
-      this.focus();
-    }
-
-    if (options?.autoselect ?? true) {
-      this.selectAll();
-    }
   }
 
   get hasFocus() {
@@ -124,40 +123,31 @@ export class TextEditor extends EventTarget {
     return this.$selection;
   }
 
-  $createRoot(styles) {
-    return Content.createRootElement(
-      [this.createParagraph("")],
-      Content.createRootElementStyleFromDefaults(this.$defaults, styles),
-    );
-  }
-
-  createParagraph(data = "", styles) {
-    return Content.createParagraphElement(
-      [this.createInline(data)],
-      Content.createParagraphElementStyleFromDefaults(this.$defaults, styles),
-    );
-  }
-
-  createInline(data, styles) {
-    return Content.createInlineElement(
-      [data],
-      Content.createInlineElementStyleFromDefaults(this.$defaults, styles),
-    );
-  }
-
   $setup() {
-    this.$element.contentEditable = true;
-    this.$element.spellcheck = false;
-    this.$element.autocapitalize = false;
-    this.$element.autofocus = true;
-    this.$element.role = "textbox";
-    this.$element.dataset.editor = true;
+    if (!this.$element.contentEditable) this.$element.contentEditable = true;
 
-    this.$element.ariaAutoComplete = false;
-    this.$element.ariaMultiLine = true;
+    if (this.$element.spellcheck) this.$element.spellcheck = false;
+
+    if (this.$element.autocapitalize) this.$element.autocapitalize = false;
+
+    if (!this.$element.autofocus) this.$element.autofocus = true;
+
+    if (!this.$element.role || this.$element.role !== "textbox") this.$element.role = "textbox";
+
+    if (!this.$element.dataset.editor) this.$element.dataset.editor = true;
+
+    if (this.$element.ariaAutoComplete) this.$element.ariaAutoComplete = false;
+
+    if (!this.$element.ariaMultiLine) this.$element.ariaMultiLine = true;
 
     this.$root = this.$createRoot();
     this.$element.appendChild(this.$root);
+    this.$selection = document.getSelection();
+
+    const textNode = document.createTextNode(' ')
+    const inline = this.$root.querySelector('[data-itype="inline"]')
+    inline.appendChild(textNode)
+    this.$selection.collapse(textNode, 0)
 
     this.$addEventListeners();
   }
@@ -172,22 +162,30 @@ export class TextEditor extends EventTarget {
   }
 
   $onSelectionChange = (e) => {
+    // TODO: Cuando se realice un "selectionchange" lo que podemos
+    // hacer es lanzar un evento al componente que nos permita obtener
+    // los estilos actuales (en el nodo actual) y usar esos estilos
+    // para notificar al menu de tipografías qué es lo que hay actualmente
+    // seteado en el editor.
     console.log(e);
     this.$selection = document.getSelection();
+    console.log('Range Count', this.$selection.rangeCount);
     // Aquí lidiamos con una selección colapsada
     // también conocida como "caret".
     if (this.$selection.isCollapsed) {
       const caretNode = this.$selection.anchorNode;
       const caretOffset = this.$selection.anchorOffset;
-      // console.log(caretNode, caretOffset);
+      console.log(caretNode, caretOffset);
+      console.log('current paragraph', this.getCurrentParagraph());
+      console.log('current inline', this.getCurrentInline());
     } else {
-      // console.log(this.$selection.anchorNode, this.$selection.anchorOffset);
-      // console.log(this.$selection.focusNode, this.$selection.focusOffset);
+      console.log(this.$selection.anchorNode, this.$selection.anchorOffset);
+      console.log(this.$selection.focusNode, this.$selection.focusOffset);
       // Aquí estaríamos hablando de una selección
       // de rango.
       for (let rangeIndex = 0; rangeIndex < this.$selection.rangeCount; rangeIndex++) {
         const range = this.$selection.getRangeAt(rangeIndex);
-        // console.log(range);
+        console.log(range);
       }
     }
   };
@@ -228,17 +226,18 @@ export class TextEditor extends EventTarget {
     console.log(e);
     document.addEventListener("selectionchange", this.$onSelectionChange);
     this.$selection = document.getSelection();
-    /*
     console.log(this.$selection.anchorNode);
     if (!this.$selection.anchorNode) {
-      const firstText = this.$element.querySelector('[data-inline]').firstChild
-      this.$selection.collapse(firstText, 0);
-      console.log(this.$selection.anchorNode, this.$selection.anchorOffset);
+      this.$selectFirstInline();
     }
-    */
   };
 
   $onBlur = (e) => {
+    // TODO: Aquí necesitamos controlar el caso en el
+    // que tenemos una selección y queremos modificar
+    // algo. Deberíamos tener algo como `createFakeSelection`
+    // y que esa función pinte la selección falsa directamente
+    // en el DOM.
     console.log(e);
     document.removeEventListener("selectionchange", this.$onSelectionChange);
     this.$changeController.notifyImmediately();
@@ -257,15 +256,37 @@ export class TextEditor extends EventTarget {
   };
 
   $addEventListeners() {
-    Object
-      .entries(this.$events)
-      .forEach(([type, listener]) => this.$element.addEventListener(type, listener));
+    Object.entries(this.$events).forEach(([type, listener]) =>
+      this.$element.addEventListener(type, listener),
+    );
   }
 
   $removeEventListeners() {
-    Object
-      .entries(this.$events)
-      .forEach(([type, listener]) => this.$element.removeEventListener(type, listener));
+    Object.entries(this.$events).forEach(([type, listener]) =>
+      this.$element.removeEventListener(type, listener),
+    );
+  }
+
+  $createRoot(styles) {
+    return Content.createRootElement(
+      // FIXME: Por lo visto cuando creas un párrafo vacío el caret se queda tróspido.
+      [this.createParagraph("")],
+      Content.createRootElementStyleFromDefaults(this.$defaults, styles),
+    );
+  }
+
+  createParagraph(data = "", styles) {
+    return Content.createParagraphElement(
+      [this.createInline(data)],
+      Content.createParagraphElementStyleFromDefaults(this.$defaults, styles),
+    );
+  }
+
+  createInline(data, styles) {
+    return Content.createInlineElement(
+      [data],
+      Content.createInlineElementStyleFromDefaults(this.$defaults, styles),
+    );
   }
 
   /**
@@ -275,7 +296,7 @@ export class TextEditor extends EventTarget {
    */
   setContent(content, options) {
     const newRoot = Content.toDOM(content);
-    console.log(newRoot);
+    console.log("root", newRoot);
     this.$root = newRoot;
     this.$element.replaceChildren(newRoot);
     if (options?.selectAll) {
@@ -292,10 +313,48 @@ export class TextEditor extends EventTarget {
     return Content.fromDOM(this.$root);
   }
 
+  $selectFirstInline() {
+    const inline = this.$element.querySelector('[data-itype="inline"]');
+    if (inline.firstChild) {
+      if (inline.firstChild.nodeType !== Node.TEXT_NODE) {
+        console.warn("Inline should'nt have ELEMENT_NODE descendants");
+      }
+      this.$selection.collapse(inline.firstChild, 0);
+    } else {
+      const textNode = document.createTextNode("");
+      inline.appendChild(textNode);
+      this.$selection.collapse(textNode, 0);
+    }
+  }
+
   selectAll() {
     this.$selection = document.getSelection();
     this.$selection.selectAllChildren(this.$element);
     return this;
+  }
+
+  getCurrentParagraph() {
+    return this.getStartParagraph();
+  }
+
+  getCurrentInline() {
+    return this.getStartInline();
+  }
+
+  getStartParagraph() {
+    return SelectionHelpers.findParagraphFromSelection(this.$selection);
+  }
+
+  getEndParagraph() {
+    return SelectionHelpers.findParagraphFromSelection(this.$selection, 'focus');
+  }
+
+  getStartInline() {
+    return SelectionHelpers.findInlineFromSelection(this.$selection);
+  }
+
+  getEndInline() {
+    return SelectionHelpers.findInlineFromSelection(this.$selection, 'focus');
   }
 
   getText() {

@@ -11,7 +11,12 @@ export class ChangeController {
   $time = 1000;
   $hasPendingChanges = false;
 
-  constructor(target, time) {
+  /**
+   *
+   * @param {EventTarget} target
+   * @param {number} [time=500]
+   */
+  constructor(target, time = 500) {
     if (!(target instanceof EventTarget)) {
       throw new TypeError("Invalid EventTarget");
     }
@@ -22,6 +27,11 @@ export class ChangeController {
     this.$time = time ?? 500;
   }
 
+  /**
+   * Indicates that there are some pending changes.
+   *
+   * @type {boolean}
+   */
   get hasPendingChanges() {
     return this.$hasPendingChanges;
   }
@@ -30,12 +40,21 @@ export class ChangeController {
     this.$target.dispatchEvent(new Event("change"));
   };
 
+  /**
+   * Tells the ChangeController that a change has been made
+   * but that you need to delay the notification (and debounce)
+   * for sometime.
+   */
   notifyDebounced() {
     this.$hasPendingChanges = true;
     clearTimeout(this.$timeout);
     this.$timeout = setTimeout(this.$onTimeout, this.$time);
   }
 
+  /**
+   * Tells the ChangeController that a change should be notified
+   * immediately.
+   */
   notifyImmediately() {
     clearTimeout(this.$timeout);
     this.$onTimeout();

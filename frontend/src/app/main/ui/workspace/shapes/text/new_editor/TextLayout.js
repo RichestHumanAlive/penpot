@@ -10,17 +10,50 @@ import PositionData from "./PositionData.js";
 
 export class TextLayout {
   $layoutRange = null;
-  $layoutElement = null;
+  $layoutElement = null; // <div>
+  $layoutContainerElement = null; // <foreignObject>
+  $layoutRootElement = null; // <svg>
 
   constructor() {
     this.$layoutRange = document.createRange();
-    const layoutElement = document.querySelector("[data-layout]");
-    if (!layoutElement) {
-      this.$layoutElement = document.createElement("div");
-    } else {
-      this.$layoutElement = layoutElement;
-    }
+    this.$layoutRootElement = document.querySelector('[data-layout-root]');
+    this.$layoutContainerElement = document.querySelector("[data-layout-container]");
+    this.$layoutElement = this.$getOrCreate("[data-layout]", () => this.$createLayoutElement());
     this.$setupLayout();
+  }
+
+  $createLayoutRoot() {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.style.position = "fixed";
+    svg.style.top = "0px";
+    svg.style.left = "0px";
+    svg.style.pointerEvents = "none";
+    svg.dataset.layoutRoot = true;
+    return svg
+  }
+
+  $createLayoutContainer() {
+    const ns = "http://www.w3.org/2000/svg";
+    const foreignObject = document.createElementNS(ns, "foreignObject");
+    foreignObject.dataset.layoutContainer = true;
+    return foreignObject;
+  }
+
+  $createLayoutElement() {
+    const element = document.createElement("div");
+    element.dataset.layout = true;
+    return element;
+  }
+
+  $getOrCreate(selector, factory, options) {
+    const parentElement = options?.parentElement ?? document;
+    const element = parentElement.querySelector(selector);
+    if (!element) {
+      return factory();
+    } else {
+      return element;
+    }
   }
 
   /**
@@ -30,9 +63,24 @@ export class TextLayout {
    * @returns {TextLayout}
    */
   $setLayoutSizeFromElement(element) {
-    return this.$setLayoutSize(element.parentElement.clientWidth, element.parentElement.clientHeight);
+    return this
+      .$setLayoutRootSize(element.parentElement.clientWidth, element.parentElement.clientHeight)
+      .$setLayoutSize(element.parentElement.clientWidth, element.parentElement.clientHeight);
   }
 
+  $setLayoutRootSize(width, height) {
+    this.$layoutRootElement.setAttribute('width', `${width}px`);
+    this.$layoutRootElement.setAttribute('height', `${height}px`);
+    return this;
+  }
+
+  /**
+   * Sets the layout size.
+   *
+   * @param {number} width
+   * @param {number} height
+   * @returns {TextLayout}
+   */
   $setLayoutSize(width, height) {
     this.$layoutElement.style.width = `${width}px`;
     this.$layoutElement.style.height = `${height}px`;
@@ -41,17 +89,21 @@ export class TextLayout {
 
   $setupLayout() {
     this.$layoutElement.dataset.layout = true;
-    this.$layoutElement.style.pointerEvents = "none";
-    this.$layoutElement.style.left = "0px";
-    this.$layoutElement.style.top = "0px";
-    this.$layoutElement.style.position = "absolute";
 
-    const prevLayoutElement = document.querySelector("[data-layout]");
-    if (prevLayoutElement && prevLayoutElement !== this.$layoutElement) {
-      prevLayoutElement.parentElement.replaceChild(this.$layoutElement, prevLayoutElement);
-    } else {
-      document.body.appendChild(this.$layoutElement);
+    if (!this.$layoutRootElement) {
+      this.$layoutRootElement = this.$createLayoutRoot();
+      document.body.appendChild(this.$layoutRootElement);
     }
+
+    // If the [data-layout-container] element doesn't exists
+    // then we create it and append it to the document.body
+    if (!this.$layoutContainerElement) {
+      this.$layoutContainerElement = this.$createLayoutContainer();
+      this.$layoutRootElement.appendChild(this.$layoutContainerElement);
+    }
+
+    // Replaces every children inside the layout container element.
+    this.$layoutContainerElement.replaceChildren(this.$layoutElement);
   }
 
   /**
@@ -158,12 +210,22 @@ export class TextLayout {
    * @returns {PersistentHashMap<Keyword, *>}
    */
   layoutFromElement(element) {
+    // FIXME: No me gusta esta forma de convertir las coordenadas.
+    const x = parseFloat(element.dataset.x);
+    const y = parseFloat(element.dataset.y);
+
     this.$setLayoutSizeFromElement(element);
+
+    // TODO: En vez de clonar todo el layout utilizando `element.cloneNode(true)`
+    // creo que voy a necesitar atravesar el árbol (¿usando un TreeWalker?)
+    // y clonar a mano todo para poder mantener la relación entre los nodos
+    // del editor y los nodos del layout.
     this.$layoutElement.replaceChildren(element.cloneNode(true));
     const positionData = Array
-      .from(this.$layoutElement.querySelectorAll("[data-inline]"))
+      .from(this.$layoutElement.querySelectorAll('[data-itype="inline"]'))
       .flatMap((inlineNode) => {
-        const textAlign = inlineNode.parentElement.style.textAlign || "left";
+        const style = window.getComputedStyle(inlineNode.parentElement);
+        const textAlign = style.textAlign || "left";
         return Array
           .from(inlineNode.childNodes)
           .flatMap((childNode) =>
@@ -171,15 +233,14 @@ export class TextLayout {
           );
       })
       .filter((layoutNode) => layoutNode.rect)
-      .map((layoutNode) => { // TODO: No me gusta.
-        const x = parseFloat(element.dataset.x);
-        const y = parseFloat(element.dataset.y);
+      .map((layoutNode) => {
+        // FIXME: No me gusta esta forma de convertir las coordenadas.
         layoutNode.rect.x += x;
-        layoutNode.rect.y += y;
+        layoutNode.rect.y += y + layoutNode.rect.height;
         layoutNode.rect.x1 += x;
-        layoutNode.rect.y1 += y;
+        layoutNode.rect.y1 += y + layoutNode.rect.height;
         layoutNode.rect.x2 += x;
-        layoutNode.rect.y2 += y;
+        layoutNode.rect.y2 += y + layoutNode.rect.height;
         return layoutNode;
       })
       .map(PositionData.mapLayoutNode);

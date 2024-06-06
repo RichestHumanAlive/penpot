@@ -7,6 +7,7 @@
 (ns app.main.ui.workspace.shapes.text.new-editor
   (:require
    ["./new_editor_impl.js" :as impl]
+   [app.common.data :as d]
    [app.common.data.macros :as dm]
    [app.common.geom.shapes :as gsh]
    [app.common.geom.shapes.text :as gst]
@@ -30,9 +31,13 @@
   (let [content (:content shape)
         shape-id (:id shape)
 
+        ;; Gets the default font from the workspace refs
+        default-font (deref refs/default-font)
+
         ;; This is a reference to the dom element that
         ;; should contain the TextEditor
         text-editor-ref (mf/use-ref nil)
+
         ;; This reference is to the container
         text-editor-container-ref (mf/use-ref nil)
         text-editor-instance-ref (mf/use-ref nil)
@@ -94,10 +99,12 @@
        ;; NOTE: I don't like this. Too much initialization.
        (let [keys [(events/listen js/document "keyup" on-key-up)]
              text-editor (mf/ref-val text-editor-ref)
-             text-editor-options #js { :defaults text/default-text-attrs }
+             text-editor-options #js { :defaults (d/merge text/default-text-attrs
+                                                          default-font) }
              text-editor-instance (impl/TextEditor. text-editor text-editor-options)]
          (mf/set-ref-val! text-editor-instance-ref text-editor-instance)
          (.addEventListener text-editor-instance "change" on-change)
+         ;; NOTE: I think this isn't necessary for now.
          #_(st/emit! (dwt/update-editor text-editor-instance))
          (when (some? content)
            (js/console.log "bullshit")
@@ -109,6 +116,7 @@
          (fn []
            (.removeEventListener text-editor-instance "change" on-change)
            (.dispose text-editor-instance)
+           ;; NOTE: I think this isn't necessary for now.
            #_(st/emit! (dwt/update-editor nil))
            (doseq [key keys]
              (events/unlistenByKey key))))))

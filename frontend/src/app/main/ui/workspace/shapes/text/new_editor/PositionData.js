@@ -8,6 +8,8 @@
 
 import cljs from 'goog:cljs.core'
 
+import Keyword from './Keyword.js';
+
 /**
  * Returns a new function that maps values from a CSSStyleDeclaration.
  *
@@ -17,7 +19,17 @@ import cljs from 'goog:cljs.core'
  */
 function createStyleMapper(styleName, styleDefault) {
   return function styleMap(layoutNode) {
-    const value = layoutNode.node.style.getPropertyValue(styleName);
+    const style = window.getComputedStyle(layoutNode.node);
+    const value = style.getPropertyValue(styleName);
+    if (styleName.startsWith('--') && value) {
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        console.warn('Parsing style failed', error, value);
+        console.warn('Returning default style', styleDefault);
+        return styleDefault;
+      }
+    }
     if (!value && styleDefault) {
       return styleDefault;
     }
@@ -38,31 +50,31 @@ function createRectMapper(propertyName) {
 }
 
 const DEFAULT_FILLS = cljs.PersistentHashMap.fromArrays(
-  [cljs.keyword("fill-color"), cljs.keyword("fill-opacity")],
+  [Keyword.FILL_COLOR, Keyword.FILL_OPACITY],
   ["#000000", 1],
 );
 
 const LayoutNodeMap = [
-  [cljs.keyword("fills"), () => DEFAULT_FILLS],
-  [cljs.keyword("text"), (layoutNode) => layoutNode.text],
-  [cljs.keyword("direction"), createStyleMapper("text-direction", "ltr")],
-  [cljs.keyword("font-family"), createStyleMapper("font-family")],
-  [cljs.keyword("font-size"), createStyleMapper("font-size")],
-  [cljs.keyword("font-style"), createStyleMapper("font-style")],
-  [cljs.keyword("font-weight"), createStyleMapper("font-weight")],
-  [cljs.keyword("font-variant"), createStyleMapper("font-variant")],
-  [cljs.keyword("text-decoration"), createStyleMapper("text-decoration")],
-  [cljs.keyword("text-transform"), createStyleMapper("text-transform")],
-  [cljs.keyword("line-height"), createStyleMapper("line-height")],
-  [cljs.keyword("letter-spacing"), createStyleMapper("letter-spacing")],
-  [cljs.keyword("x"), createRectMapper("x")],
-  [cljs.keyword("y"), createRectMapper("y")],
-  [cljs.keyword("width"), createRectMapper("width")],
-  [cljs.keyword("height"), createRectMapper("height")],
-  [cljs.keyword("x1"), createRectMapper("x")],
-  [cljs.keyword("y1"), createRectMapper("y")],
-  [cljs.keyword("x2"), (layoutNode) => layoutNode.rect.x + layoutNode.rect.width],
-  [cljs.keyword("y2"), (layoutNode) => layoutNode.rect.y + layoutNode.rect.height],
+  [Keyword.FILLS, createStyleMapper("--fills", DEFAULT_FILLS)],
+  [Keyword.TEXT, (layoutNode) => layoutNode.text],
+  [Keyword.DIRECTION, createStyleMapper("text-direction", "ltr")],
+  [Keyword.FONT_FAMILY, createStyleMapper("font-family")],
+  [Keyword.FONT_SIZE, createStyleMapper("font-size")],
+  [Keyword.FONT_STYLE, createStyleMapper("font-style")],
+  [Keyword.FONT_WEIGHT, createStyleMapper("font-weight")],
+  [Keyword.FONT_VARIANT, createStyleMapper("font-variant")],
+  [Keyword.TEXT_DECORATION, createStyleMapper("text-decoration")],
+  [Keyword.TEXT_TRANSFORM, createStyleMapper("text-transform")],
+  [Keyword.LINE_HEIGHT, createStyleMapper("line-height")],
+  [Keyword.LETTER_SPACING, createStyleMapper("letter-spacing")],
+  [Keyword.X, createRectMapper("x")],
+  [Keyword.Y, createRectMapper("y")],
+  [Keyword.WIDTH, createRectMapper("width")],
+  [Keyword.HEIGHT, createRectMapper("height")],
+  [Keyword.X1, createRectMapper("x")],
+  [Keyword.Y1, createRectMapper("y")],
+  [Keyword.X2, (layoutNode) => layoutNode.rect.x + layoutNode.rect.width],
+  [Keyword.Y2, (layoutNode) => layoutNode.rect.y + layoutNode.rect.height],
 ];
 
 /**
