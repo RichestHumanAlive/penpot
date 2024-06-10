@@ -57,7 +57,7 @@ const DEFAULT_FILLS = cljs.PersistentHashMap.fromArrays(
 const LayoutNodeMap = [
   [Keyword.FILLS, createStyleMapper("--fills", DEFAULT_FILLS)],
   [Keyword.TEXT, (layoutNode) => layoutNode.text],
-  [Keyword.DIRECTION, createStyleMapper("text-direction", "ltr")],
+  [Keyword.DIRECTION, createStyleMapper("direction", "ltr")],
   [Keyword.FONT_FAMILY, createStyleMapper("font-family")],
   [Keyword.FONT_SIZE, createStyleMapper("font-size")],
   [Keyword.FONT_STYLE, createStyleMapper("font-style")],

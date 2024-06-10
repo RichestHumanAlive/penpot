@@ -239,6 +239,7 @@ export class TextEditor extends EventTarget {
     // y que esa función pinte la selección falsa directamente
     // en el DOM.
     console.log(e);
+    console.log('Selection on Blur', this.$selection)
     document.removeEventListener("selectionchange", this.$onSelectionChange);
     this.$changeController.notifyImmediately();
   };

@@ -16,7 +16,6 @@ export const Keyword = {
   TEXT_TRANSFORM: cljs.keyword("text-transform"),
   TEXT_ALIGN: cljs.keyword("text-align"),
   TEXT_DECORATION: cljs.keyword("text-decoration"),
-  TEXT_DIRECTION: cljs.keyword("text-direction"),
   TYPOGRAPHY_REF_ID: cljs.keyword("typography-ref-id"),
   TYPOGRAPHY_REF_FILE: cljs.keyword("typography-ref-file"),
   LINE_HEIGHT: cljs.keyword("line-height"),

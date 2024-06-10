@@ -27,7 +27,7 @@ export const rootAttrs = [["vertical-align", "vertical-align"]];
 
 export const paragraphAttrs = [
   [Keyword.TEXT_ALIGN, "text-align"],
-  [Keyword.TEXT_DIRECTION, "text-direction"],
+  [Keyword.DIRECTION, "direction"],
   [Keyword.LINE_HEIGHT, "line-height"],
   [Keyword.FONT_SIZE, "font-size", "px"],
 ];
@@ -52,6 +52,20 @@ export const inlineAttrs = [
   [Keyword.FILLS, "--fills"],
 ];
 
+export function mapStyleFills(fills) {
+  if (Array.isArray(fills)) {
+    return cljs.PersistentVector.fromArray(
+      fills.map((fill) => {
+        return cljs.PersistentHashMap.fromArrays(
+          [Keyword.FILL_COLOR, Keyword.FILL_OPACITY],
+          [fill["fill-color"], fill["fill-opacity"]],
+        );
+      }),
+    );
+  }
+  return null
+}
+
 /**
  * Extracts style from style declaration.
  *
@@ -61,17 +75,23 @@ export const inlineAttrs = [
  * @returns {string}
  */
 export function extractStyleValue(style, styleName, styleUnits) {
-  const value = styleUnits
+  const styleValue = styleUnits
     ? style.getPropertyValue(styleName).replace(styleUnits, "")
     : style.getPropertyValue(styleName);
   if (styleName.startsWith('--')) {
     try {
-      return JSON.parse(value)
+      const stylePayload = JSON.parse(styleValue)
+      if (styleName === '--fills') {
+        return mapStyleFills(stylePayload)
+      } else if (stylePayload === 'null') {
+        return null
+      }
+      return stylePayload
     } catch (error) {
       return null
     }
   }
-  return value
+  return styleValue
 }
 
 /**
@@ -88,7 +108,7 @@ export function extractStyles(element, attrs) {
     const value = extractStyleValue(style, styleName, styleUnits)
     styleMap.set(contentAttr, value);
   }
-  return [Object.keys(styleMap), Object.values(styleMap)];
+  return [Array.from(styleMap.keys()), Array.from(styleMap.values())];
 }
 
 /**
@@ -129,12 +149,11 @@ export function extractTextStyles(element) {
 export function setAttribute(element, name, value) {
   if (name === "style" && value) {
     for (const [styleName, styleValue] of Object.entries(value)) {
-      let value = styleValue
+      let propertyValue = styleValue
       if (styleName.startsWith("--")) {
-        console.log("FIXME: Set variable", styleName, styleValue)
-        value = JSON.stringify(styleValue);
+        propertyValue = JSON.stringify(styleValue);
       }
-      element.style.setProperty(styleName, value);
+      element.style.setProperty(styleName, propertyValue);
     }
   } else if (name === "dataset" && value) {
     for (const [dataName, dataValue] of Object.entries(value)) {
@@ -144,6 +163,36 @@ export function setAttribute(element, name, value) {
     element.setAttribute(name, value);
   }
   return element;
+}
+
+/**
+ *
+ * @param {Node} node
+ * @param {number} type
+ * @param  {...any} args
+ * @returns {boolean}
+ */
+export function isNode(node, type, ...args) {
+  if (node.nodeType !== type) {
+    return false;
+  }
+  switch (type) {
+    case Node.ELEMENT_NODE:
+      const [name] = args
+      if (node.nodeName !== name) {
+        return false
+      }
+      return true
+
+    case Node.TEXT_NODE:
+      if (args.length > 0) {
+        const [text] = args
+        if (node.wholeText !== text) {
+          return false
+        }
+      }
+      return true
+  }
 }
 
 /**
@@ -181,8 +230,8 @@ export function createElement(tag, attribs, children, options) {
 export function createElementStyleFromContentNode(attrs, contentNode) {
   const style = {};
   for (const [contentAttr, elementStyle, styleUnits] of attrs) {
-    if (hasKey(contentNode, cljs.keyword(contentAttr))) {
-      const value = getValue(contentNode, cljs.keyword);
+    if (hasKey(contentNode, contentAttr)) {
+      const value = getValue(contentNode, contentAttr);
       const valueUnits = styleUnits ? styleUnits : '';
       style[elementStyle] = `${value}${valueUnits}`;
     }
@@ -238,7 +287,6 @@ export function createElementStyleFromDefaults(attrs, defaults, styles) {
   for (const [, elementStyle] of attrs) {
     style[elementStyle] = styles?.[elementStyle] ?? defaults?.[elementStyle];
   }
-  console.log('style', style)
   return style
 }
 
@@ -327,15 +375,29 @@ export function createInlineElement(children, styles) {
   if (!Array.isArray(children)) {
     throw new TypeError('Invalid inline children, it should be an Array of strings')
   }
-  if (!children.every(child => typeof child === 'string')) {
-    throw new TypeError('Invalid inline children, some child is not an string')
+  if (children.length > 0) {
+    const firstChild = children[0]
+    if (typeof firstChild !== 'string') {
+      if (!isNode(firstChild, Node.ELEMENT_NODE, 'BR')) {
+        throw new TypeError('Invalid inlien children, only one element is allowed: <br>')
+      }
+    } else {
+      if (!children.every(child => typeof child === 'string')) {
+        throw new TypeError('Invalid inline children, some children aren\'t strings')
+      }
+    }
   }
   return createElement(ContentTag.INLINE, {
     dataset: {
       itype: ContentType.INLINE
     },
     style: styles
-  }, children.map((child) => document.createTextNode(child)));
+  }, children.map((child) => {
+    if (typeof child === 'string') {
+      return document.createTextNode(child)
+    }
+    return child
+  }));
 }
 
 /**
@@ -344,8 +406,15 @@ export function createInlineElement(children, styles) {
  * @returns {HTMLElement}
  */
 export function createInlineElementFromContentNode(inline) {
+  const text = getValue(inline, Keyword.TEXT);
+  if (text === '\n') {
+    return createInlineElement(
+      [createElement('br')],
+      createInlineElementStyleFromContentNode(inline)
+    )
+  }
   return createInlineElement(
-    [getValue(inline, Keyword.TEXT)],
+    [text],
     createInlineElementStyleFromContentNode(inline)
   )
 }
@@ -568,10 +637,12 @@ export function toDOM(content) {
     }
     rootNode.appendChild(paragraphNode);
   }
+  console.log('toDOM', rootNode)
   return rootNode
 }
 
 /**
+ * NOTE: This is the equivalent of an `inline` DOM element.
  *
  * @param {string} text
  * @param {[cljs.keyword[], any[]]} styles
@@ -721,6 +792,13 @@ export function fromDOM(rootNode) {
             .from(childBlock.querySelectorAll('[data-itype="inline"]'))
             .map((childInline) => {
               const textStyles = extractTextStyles(childInline);
+              console.log(textStyles)
+              if (isNode(childInline.firstChild, Node.ELEMENT_NODE, 'BR')) {
+                return createText(
+                  '\n',
+                  textStyles
+                )
+              }
               return createText(
                 childInline.textContent,
                 textStyles
@@ -729,6 +807,7 @@ export function fromDOM(rootNode) {
           false
         );
         const paragraphStyles = extractParagraphStyles(childBlock);
+        console.log(paragraphStyles)
         return createParagraph(
           children,
           paragraphStyles
@@ -737,12 +816,14 @@ export function fromDOM(rootNode) {
     false
   );
   const rootStyles = extractRootStyles(rootNode);
-  return createRoot(
+  const root = createRoot(
     cljs.PersistentVector.fromArray([
       createParagraphSet(children, []),
     ]),
     rootStyles
   )
+  console.log('fromDOM', cljs.clj__GT_js(root))
+  return root
 }
 
 /**
