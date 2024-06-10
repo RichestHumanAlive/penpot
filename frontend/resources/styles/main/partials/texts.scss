@@ -1,3 +1,8 @@
+/*
+  DEPRECATED!
+  These  styles should be removed when the new-editor
+  is fully functional.
+*/
 .text-editor,
 .rich-text {
   color: $color-black;
@@ -6,59 +11,22 @@
 
   div {
     line-height: inherit;
-    user-select: text;
+    user-select: auto;
   }
 
   span {
+    line-break: auto;
     line-height: inherit;
   }
 
   &.v2 {
     outline: none;
-    user-select: text;
+    user-select: auto;
     white-space: pre-wrap;
     overflow-wrap: break-word;
   }
 }
 
-.text-editor-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-
-  &.align-top {
-    justify-content: flex-start;
-  }
-
-  &.align-center {
-    justify-content: center;
-  }
-
-  &.align-bottom {
-    justify-content: flex-end;
-  }
-}
-
-.text-editor-content {
-  outline: none;
-  user-select: text;
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  caret-color: black;
-  color: transparent;
-}
-
-[data-block] {
-  white-space: pre;
-  margin: 0px;
-  font-size: 0px;
-}
-
-/*
-  DEPRECATED!
-  These  styles should be removed when the new-editor
-  is fully functional.
-*/
 .text-editor {
   .DraftEditor-root {
     height: 100%;

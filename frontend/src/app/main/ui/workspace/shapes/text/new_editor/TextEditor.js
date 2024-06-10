@@ -13,11 +13,6 @@ import Content from "./Content.js";
 import SelectionHelpers from "./SelectionHelpers.js";
 
 /**
- * @typedef {object} TextEditorDefaults
- * @property {}
- */
-
-/**
  * @typedef {object} TextEditorOptions
  * @property {boolean} [autofocus]
  * @property {boolean} [autoselect]
@@ -54,16 +49,18 @@ export class TextEditor extends EventTarget {
   $changeController = null;
 
   /**
-   * @type {TextEditorDefaults}
+   * @type {TextEditorStyles}
    */
   $defaults = {
     "--typography-ref-file": null,
     "--typography-ref-id": null,
     "--font-id": "sourcesanspro",
-    "--fills": [{
-      "fill-color": "#000000",
-      "fill-opacity": 1
-    }],
+    "--fills": [
+      {
+        "fill-color": "#000000",
+        "fill-opacity": 1,
+      },
+    ],
     "font-family": "sourcesanspro",
     "font-variant": "regular",
     "font-size": "14",
@@ -75,6 +72,16 @@ export class TextEditor extends EventTarget {
     "text-align": "left",
     "text-decoration": "none",
   };
+
+  /**
+   * @type {TextEditorStyles}
+   */
+  $currentStyles = {};
+
+  /**
+   * @type {Map<string, *>}
+   */
+  $updatedStyles = new Map();
 
   /**
    * @param {Element} element Element that
@@ -108,6 +115,7 @@ export class TextEditor extends EventTarget {
     if (options?.defaults) {
       console.log("Setting editor defaults", Content.getDefaults(options.defaults));
       this.$defaults = Content.getDefaults(options.defaults);
+      this.$currentStyles = structuredClone(this.$defaults);
     }
   }
 
@@ -144,10 +152,10 @@ export class TextEditor extends EventTarget {
     this.$element.appendChild(this.$root);
     this.$selection = document.getSelection();
 
-    const textNode = document.createTextNode(' ')
-    const inline = this.$root.querySelector('[data-itype="inline"]')
-    inline.appendChild(textNode)
-    this.$selection.collapse(textNode, 0)
+    const textNode = document.createTextNode(" ");
+    const inline = this.$root.querySelector('[data-itype="inline"]');
+    inline.appendChild(textNode);
+    this.$selection.collapse(textNode, 0);
 
     this.$addEventListeners();
   }
@@ -161,31 +169,80 @@ export class TextEditor extends EventTarget {
     this.$changeController = null;
   }
 
+  $updateStyle(name, value) {
+    if (this.$currentStyles[name] !== value) {
+      this.$updatedStyles.set(name, value)
+      return true;
+    }
+    return false;
+  }
+
+  $updateCurrentStyles = () => {
+    const paragraph = this.getCurrentParagraph();
+    if (!paragraph || !('itype' in paragraph.dataset) || paragraph.dataset.itype !== 'paragraph') {
+      console.log("Wrong paragraph itype");
+      return;
+    }
+
+    const inline = this.getCurrentInline();
+    if (!inline || !('itype' in inline.dataset) || inline.dataset.itype !== 'inline') {
+      console.log('Wrong inline itype')
+      return;
+    }
+
+    const paragraphStyles = Content.getParagraphStyles(paragraph);
+
+    let updated = false;
+    for (const [name, value] of paragraphStyles) {
+      if (this.$updateStyle(name, value)) {
+        updated = true;
+      }
+    }
+
+    const inlineStyles = Content.getInlineStyles(inline);
+    for (const [name, value] of inlineStyles) {
+      if (this.$updateStyle(name, value)) {
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      for (const [name, value] of this.$updatedStyles) {
+        this.$currentStyles[name] = value;
+      }
+      this.$updatedStyles.clear();
+    }
+    return updated;
+  };
+
+  $tryUpdateCurrentStyles = () => {
+    const updated = this.$updateCurrentStyles();
+    if (updated) {
+      this.dispatchEvent(new Event('stylechange'));
+    }
+    // TODO: Calculamos los estilos actuales basándonos
+    //       en la posición del caret.
+
+    // 1. Generar un mapa de los estilos actuales a partir del paragraph y el inline.
+    // 2. Comparar el mapa, si es distinto:
+    //   2.1. Actualizar $currentStyles.
+    //   2.2. Lanzar un evento de estilos actualizados.
+    // 3. Si el mapa es igual no hacemos nada.
+  };
+
   $onSelectionChange = (e) => {
-    // TODO: Cuando se realice un "selectionchange" lo que podemos
-    // hacer es lanzar un evento al componente que nos permita obtener
-    // los estilos actuales (en el nodo actual) y usar esos estilos
-    // para notificar al menu de tipografías qué es lo que hay actualmente
-    // seteado en el editor.
     console.log(e);
     this.$selection = document.getSelection();
-    console.log('Range Count', this.$selection.rangeCount);
     // Aquí lidiamos con una selección colapsada
     // también conocida como "caret".
     if (this.$selection.isCollapsed) {
-      const caretNode = this.$selection.anchorNode;
-      const caretOffset = this.$selection.anchorOffset;
-      console.log(caretNode, caretOffset);
-      console.log('current paragraph', this.getCurrentParagraph());
-      console.log('current inline', this.getCurrentInline());
+      this.$tryUpdateCurrentStyles()
     } else {
-      console.log(this.$selection.anchorNode, this.$selection.anchorOffset);
-      console.log(this.$selection.focusNode, this.$selection.focusOffset);
       // Aquí estaríamos hablando de una selección
       // de rango.
       for (let rangeIndex = 0; rangeIndex < this.$selection.rangeCount; rangeIndex++) {
         const range = this.$selection.getRangeAt(rangeIndex);
-        console.log(range);
+
       }
     }
   };
@@ -222,6 +279,18 @@ export class TextEditor extends EventTarget {
     clipboard.cut(this, e);
   };
 
+  $showFakeSelection = () => {
+    console.log('show fake selection')
+    // TODO: En vez de utilizar el truco que usa
+    //       Draft.js de envolver la selección con
+    //       un span, lo que podemos hacer es generar
+    //       sólo los elementos de la selección
+  }
+
+  $hideFakeSelection = () => {
+    console.log('hide fake selection')
+  }
+
   $onFocus = (e) => {
     console.log(e);
     document.addEventListener("selectionchange", this.$onSelectionChange);
@@ -230,6 +299,7 @@ export class TextEditor extends EventTarget {
     if (!this.$selection.anchorNode) {
       this.$selectFirstInline();
     }
+    this.$hideFakeSelection();
   };
 
   $onBlur = (e) => {
@@ -239,9 +309,10 @@ export class TextEditor extends EventTarget {
     // y que esa función pinte la selección falsa directamente
     // en el DOM.
     console.log(e);
-    console.log('Selection on Blur', this.$selection)
+    console.log("Selection on Blur", this.$selection);
     document.removeEventListener("selectionchange", this.$onSelectionChange);
     this.$changeController.notifyImmediately();
+    this.$showFakeSelection();
   };
 
   $onKeyPress = (e) => {
@@ -291,6 +362,8 @@ export class TextEditor extends EventTarget {
   }
 
   /**
+   * Sets the content of the editor based on
+   * the internal Penpot structure.
    *
    * @param {PersistentHashMap<Keyword,*>} content
    * @returns {TextEditor}
@@ -307,8 +380,9 @@ export class TextEditor extends EventTarget {
   }
 
   /**
+   * Returns the content of the editor
    *
-   * @returns {Content}
+   * @returns {PersistentHashMap<Keyword,*>}
    */
   getContent() {
     return Content.fromDOM(this.$root);
@@ -347,7 +421,7 @@ export class TextEditor extends EventTarget {
   }
 
   getEndParagraph() {
-    return SelectionHelpers.findParagraphFromSelection(this.$selection, 'focus');
+    return SelectionHelpers.findParagraphFromSelection(this.$selection, "focus");
   }
 
   getStartInline() {
@@ -355,7 +429,7 @@ export class TextEditor extends EventTarget {
   }
 
   getEndInline() {
-    return SelectionHelpers.findInlineFromSelection(this.$selection, 'focus');
+    return SelectionHelpers.findInlineFromSelection(this.$selection, "focus");
   }
 
   getText() {

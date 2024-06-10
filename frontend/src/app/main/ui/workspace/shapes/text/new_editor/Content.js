@@ -52,6 +52,11 @@ export const inlineAttrs = [
   [Keyword.FILLS, "--fills"],
 ];
 
+/**
+ *
+ * @param {} fills
+ * @returns {PersistentVector<PersistentHashMap<Keyword, *>>}
+ */
 export function mapStyleFills(fills) {
   if (Array.isArray(fills)) {
     return cljs.PersistentVector.fromArray(
@@ -95,6 +100,22 @@ export function extractStyleValue(style, styleName, styleUnits) {
 }
 
 /**
+ *
+ * @param {HTMLElement} element
+ * @param {ContentNodeAttributes} attrs
+ * @returns {Map<cljs.keyword, *>}
+ */
+export function getStyleMap(element, attrs) {
+  const style = getComputedStyle(element);
+  const styleMap = new Map();
+  for (const [contentAttr, styleName, styleUnits] of attrs) {
+    const value = extractStyleValue(style, styleName, styleUnits);
+    styleMap.set(contentAttr, value);
+  }
+  return styleMap
+}
+
+/**
  * Extracts styles from an HTMLElement.
  *
  * @param {HTMLElement} element
@@ -102,12 +123,7 @@ export function extractStyleValue(style, styleName, styleUnits) {
  * @returns {[cljs.keyword[], any[]]}
  */
 export function extractStyles(element, attrs) {
-  const style = getComputedStyle(element);
-  const styleMap = new Map()
-  for (const [contentAttr, styleName, styleUnits] of attrs) {
-    const value = extractStyleValue(style, styleName, styleUnits)
-    styleMap.set(contentAttr, value);
-  }
+  const styleMap = getStyleMap(element, attrs)
   return [Array.from(styleMap.keys()), Array.from(styleMap.values())];
 }
 
@@ -134,8 +150,26 @@ export function extractParagraphStyles(element) {
  * @param {HTMLElement} element
  * @returns {[cljs.keyword[], any[]]}
  */
-export function extractTextStyles(element) {
+export function extractInlineStyles(element) {
   return extractStyles(element, inlineAttrs);
+}
+
+/**
+ *
+ * @param {HTMLElement} element
+ * @returns {Object}
+ */
+export function getParagraphStyles(element) {
+  return getStyleMap(element, paragraphAttrs);
+}
+
+/**
+ *
+ * @param {HTMLElement} element
+ * @returns {Object}
+ */
+export function getInlineStyles(element) {
+  return getStyleMap(element, inlineAttrs);
 }
 
 /**
@@ -341,6 +375,7 @@ export function createParagraphElement(children, styles) {
     throw new TypeError('Invalid paragraph children, it should be an Array of HTMLElements')
   }
   return createElement(ContentTag.PARAGRAPH, {
+    contentEditable: true,
     dataset: {
       itype: ContentType.PARAGRAPH
     },
@@ -791,8 +826,7 @@ export function fromDOM(rootNode) {
           Array
             .from(childBlock.querySelectorAll('[data-itype="inline"]'))
             .map((childInline) => {
-              const textStyles = extractTextStyles(childInline);
-              console.log(textStyles)
+              const textStyles = extractInlineStyles(childInline);
               if (isNode(childInline.firstChild, Node.ELEMENT_NODE, 'BR')) {
                 return createText(
                   '\n',
@@ -807,7 +841,6 @@ export function fromDOM(rootNode) {
           false
         );
         const paragraphStyles = extractParagraphStyles(childBlock);
-        console.log(paragraphStyles)
         return createParagraph(
           children,
           paragraphStyles
@@ -878,9 +911,12 @@ export const Content = {
   validateRoot,
 
   extractStyles,
-  extractTextStyles,
+  extractInlineStyles,
   extractParagraphStyles,
   extractRootStyles,
+
+  getParagraphStyles,
+  getInlineStyles,
 
   createElementStyleFromContentNode,
   createRootElementStyleFromContentNode,

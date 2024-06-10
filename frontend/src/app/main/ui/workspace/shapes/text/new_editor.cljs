@@ -5,6 +5,7 @@
 ;; Copyright (c) KALEIDOS INC
 
 (ns app.main.ui.workspace.shapes.text.new-editor
+  (:require-macros [app.main.style :as stl])
   (:require
    ["./new_editor_impl.js" :as impl]
    [app.common.data :as d]
@@ -121,8 +122,16 @@
            (doseq [key keys]
              (events/unlistenByKey key))))))
 
-    [:div.text-editor-container.v2
-     {:ref text-editor-container-ref
+    [:div
+     {:class (dm/str "mousetrap"
+                     " "
+                     (cur/get-dynamic "text" (:rotation shape))
+                     " "
+                     (stl/css-case :text-editor-container true
+                                   :align-top    (= (:vertical-align content "top") "top")
+                                   :align-center (= (:vertical-align content) "center")
+                                   :align-bottom (= (:vertical-align content) "bottom")))
+      :ref text-editor-container-ref
       :style {:width (:width shape)
               :height (:height shape)}
               ;; We hide the editor when is blurred because otherwise the selection won't let us see
@@ -131,15 +140,11 @@
               ;; IMPORTANT! This is now done through DOM mutations (see on-blur and on-focus)
               ;; but I keep this for future references.
               ;; :opacity (when @blurred 0)}}
-      :on-click on-click
-      :class (dom/classnames
-              (cur/get-dynamic "text" (:rotation shape)) true
-              :align-top    (= (:vertical-align content "top") "top")
-              :align-center (= (:vertical-align content) "center")
-              :align-bottom (= (:vertical-align content) "bottom"))}
+      :on-click on-click}
 
-     [:div.text-editor-content
-      {:ref text-editor-ref
+     [:div
+      {:class (stl/css :text-editor-content)
+       :ref text-editor-ref
        :data-x (dm/get-prop shape :x)
        :data-y (dm/get-prop shape :y)
        :content-editable true
@@ -178,10 +183,16 @@
                 (some? modifiers)
                 (gsh/transform-shape modifiers))
 
-        x      (dm/get-prop shape :x)
-        y      (dm/get-prop shape :y)
-        width  (dm/get-prop shape :width)
-        height (dm/get-prop shape :height)]
+        bounds (gst/shape->rect shape)
+
+        x      (mth/min (dm/get-prop bounds :x)
+                        (dm/get-prop shape :x))
+        y      (mth/min (dm/get-prop bounds :y)
+                        (dm/get-prop shape :y))
+        width  (mth/max (dm/get-prop bounds :width)
+                        (dm/get-prop shape :width))
+        height (mth/max (dm/get-prop bounds :height)
+                        (dm/get-prop shape :height))]
 
     [:g.text-editor {:clip-path (dm/fmt "url(#%)" clip-id)
                      :transform (dm/str (gsh/transform-matrix shape))}

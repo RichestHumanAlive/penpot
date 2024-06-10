@@ -308,10 +308,13 @@
   (ptk/reify ::update-text-attrs
     ptk/UpdateEvent
     (update [_ state]
+      ;; 
       (d/update-in-when state [:workspace-editor-state id] ted/update-editor-current-inline-styles attrs))
 
     ptk/WatchEvent
     (watch [_ state _]
+      ;; NOTA: Está entrando SIEMPRE por aquí porque con
+      ;; el editor nuevo no definimos un :workspace-editor-state.
       (when-not (some? (get-in state [:workspace-editor-state id]))
         (let [objects   (wsh/lookup-page-objects state)
               shape     (get objects id)
