@@ -1,1 +1,5 @@
-export function deleteContentBackward(editor, event) {}
+export function deleteContentBackward(editor, event) {
+  if (event.type === 'beforeinput') return;
+
+  editor.fixCurrentParagraph();
+}

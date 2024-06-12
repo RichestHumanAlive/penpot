@@ -9,7 +9,7 @@
 import clipboard from "./clipboard/index.js";
 import commands from "./commands/index.js";
 import ChangeController from "./ChangeController.js";
-import Content from "./Content.js";
+import Content, { ContentTag } from "./Content.js";
 import SelectionHelpers from "./SelectionHelpers.js";
 
 /**
@@ -37,6 +37,11 @@ export class TextEditor extends EventTarget {
    * @type {Selection}
    */
   $selection = null;
+
+  /**
+   * @type {Range}
+   */
+  $range = null;
 
   /**
    * @type {Object<string, Function>}
@@ -84,6 +89,12 @@ export class TextEditor extends EventTarget {
   $updatedStyles = new Map();
 
   /**
+   * @type {HTMLElement}
+   */
+  $previousParagraph = null;
+  $previousInline = null;
+
+  /**
    * @param {Element} element Element that
    * @param {TextEditorOptions} [options]
    */
@@ -104,16 +115,10 @@ export class TextEditor extends EventTarget {
 
       focus: this.$onFocus,
       blur: this.$onBlur,
-
-      keypress: this.$onKeyPress,
-      keydown: this.$onKeyDown,
-      keyup: this.$onKeyUp,
     };
 
     this.$setup();
-
     if (options?.defaults) {
-      console.log("Setting editor defaults", Content.getDefaults(options.defaults));
       this.$defaults = Content.getDefaults(options.defaults);
       this.$currentStyles = structuredClone(this.$defaults);
     }
@@ -236,7 +241,7 @@ export class TextEditor extends EventTarget {
     // Aquí lidiamos con una selección colapsada
     // también conocida como "caret".
     if (this.$selection.isCollapsed) {
-      this.$tryUpdateCurrentStyles()
+      this.$tryUpdateCurrentStyles();
     } else {
       // Aquí estaríamos hablando de una selección
       // de rango.
@@ -250,6 +255,8 @@ export class TextEditor extends EventTarget {
   $onBeforeInput = (e) => {
     console.log(e);
     if (e.inputType in commands) {
+      this.$previousParagraph = this.getCurrentParagraph();
+      this.$previousInline = this.getCurrentInline();
       const command = commands[e.inputType];
       command(this, e);
     }
@@ -264,42 +271,51 @@ export class TextEditor extends EventTarget {
     }
   };
 
-  $onPaste = (e) => {
-    console.log(e);
-    clipboard.paste(this, e);
-  };
+  $onPaste = (e) => clipboard.paste(this, e);
+  $onCopy = (e) => clipboard.copy(this, e);
+  $onCut = (e) => clipboard.cut(this, e);
 
-  $onCopy = (e) => {
-    console.log(e);
-    clipboard.copy(this, e);
-  };
-
-  $onCut = (e) => {
-    console.log(e);
-    clipboard.cut(this, e);
-  };
-
-  $showFakeSelection = () => {
-    console.log('show fake selection')
+  $tryShowFakeSelection = () => {
+    console.log('FakeSelection::show', this.$selection)
     // TODO: En vez de utilizar el truco que usa
     //       Draft.js de envolver la selección con
     //       un span, lo que podemos hacer es generar
     //       sólo los elementos de la selección
+    if (this.$selection.rangeCount > 0) {
+      const range = this.$selection.getRangeAt(0);
+      this.$range = range.cloneRange();
+
+      const rects = this.$range.getClientRects();
+      for (const rect of rects) {
+        const fakeSelectionRect = document.createElement('div')
+        fakeSelectionRect.style.position = 'absolute';
+        // fakeSelectionRect.style.top = `${rect.y}px`;
+        // fakeSelectionRect.style.left = `${rect.x}px`;
+        // fakeSelectionRect.style.width = `${rect.width}px`;
+        // fakeSelectionRect.style.height = `${rect.height}px`;
+        // fakeSelectionRect.style.backgroundColor = '#';
+        this.$element.appendChild(fakeSelectionRect);
+      }
+    }
   }
 
-  $hideFakeSelection = () => {
-    console.log('hide fake selection')
+  $tryHideFakeSelection = () => {
+    console.log('FakeSelection::hide')
+    if (this.$range) {
+      // Restauramos la selección anterior.
+      this.$selection.removeAllRanges();
+      this.$selection.addRange(this.$range);
+      this.$range = null;
+    }
   }
 
   $onFocus = (e) => {
-    console.log(e);
-    document.addEventListener("selectionchange", this.$onSelectionChange);
+    // console.log(e);
     this.$selection = document.getSelection();
-    console.log(this.$selection.anchorNode);
     if (!this.$selection.anchorNode) {
       this.$selectFirstInline();
     }
-    this.$hideFakeSelection();
+    this.$tryHideFakeSelection();
   };
 
   $onBlur = (e) => {
@@ -308,32 +324,21 @@ export class TextEditor extends EventTarget {
     // algo. Deberíamos tener algo como `createFakeSelection`
     // y que esa función pinte la selección falsa directamente
     // en el DOM.
-    console.log(e);
-    console.log("Selection on Blur", this.$selection);
-    document.removeEventListener("selectionchange", this.$onSelectionChange);
+    // console.log(e);
+    // document.removeEventListener("selectionchange", this.$onSelectionChange);
     this.$changeController.notifyImmediately();
-    this.$showFakeSelection();
-  };
-
-  $onKeyPress = (e) => {
-    console.log(e);
-  };
-
-  $onKeyDown = (e) => {
-    console.log(e);
-  };
-
-  $onKeyUp = (e) => {
-    console.log(e);
+    this.$tryShowFakeSelection();
   };
 
   $addEventListeners() {
+    document.addEventListener("selectionchange", this.$onSelectionChange);
     Object.entries(this.$events).forEach(([type, listener]) =>
       this.$element.addEventListener(type, listener),
     );
   }
 
   $removeEventListeners() {
+    document.removeEventListener("selectionchange", this.$onSelectionChange);
     Object.entries(this.$events).forEach(([type, listener]) =>
       this.$element.removeEventListener(type, listener),
     );
@@ -361,6 +366,15 @@ export class TextEditor extends EventTarget {
     );
   }
 
+  fixPreviousParagraph(styles) {
+    Content.fixParagraph(this.$previousParagraph, this.$defaults, styles);
+  }
+
+  fixCurrentParagraph(styles) {
+    const paragraph = this.getCurrentParagraph();
+    Content.fixParagraph(paragraph, this.$defaults, styles);
+  }
+
   /**
    * Sets the content of the editor based on
    * the internal Penpot structure.
@@ -370,7 +384,6 @@ export class TextEditor extends EventTarget {
    */
   setContent(content, options) {
     const newRoot = Content.toDOM(content);
-    console.log("root", newRoot);
     this.$root = newRoot;
     this.$element.replaceChildren(newRoot);
     if (options?.selectAll) {
@@ -406,6 +419,14 @@ export class TextEditor extends EventTarget {
     this.$selection = document.getSelection();
     this.$selection.selectAllChildren(this.$element);
     return this;
+  }
+
+  getPreviousParagraph() {
+    return this.$previousParagraph
+  }
+
+  getPreviousInline() {
+    return this.$previousInline
   }
 
   getCurrentParagraph() {

@@ -319,7 +319,11 @@ export function createRootElementFromContentNode(root) {
 export function createElementStyleFromDefaults(attrs, defaults, styles) {
   const style = {}
   for (const [, elementStyle] of attrs) {
-    style[elementStyle] = styles?.[elementStyle] ?? defaults?.[elementStyle];
+    let styleValue = styles?.[elementStyle] ?? defaults?.[elementStyle];
+    if (elementStyle.startsWith('--')) {
+      styleValue = cljs.clj__GT_js(styleValue);
+    }
+    style[elementStyle] = styleValue
   }
   return style
 }
@@ -375,7 +379,6 @@ export function createParagraphElement(children, styles) {
     throw new TypeError('Invalid paragraph children, it should be an Array of HTMLElements')
   }
   return createElement(ContentTag.PARAGRAPH, {
-    contentEditable: true,
     dataset: {
       itype: ContentType.PARAGRAPH
     },
@@ -672,7 +675,6 @@ export function toDOM(content) {
     }
     rootNode.appendChild(paragraphNode);
   }
-  console.log('toDOM', rootNode)
   return rootNode
 }
 
@@ -855,8 +857,59 @@ export function fromDOM(rootNode) {
     ]),
     rootStyles
   )
-  console.log('fromDOM', cljs.clj__GT_js(root))
   return root
+}
+
+export function fixInline(inline, defaults, styles) {
+  inline.childNodes.forEach((childNode) => {
+    if (!childNode.nodeType === Node.TEXT_NODE) {
+      // TODO: Ver si podemos mapear estos elementos en otros inlines o algo así.
+      childNode.remove();
+    }
+  });
+}
+
+/**
+ *
+ * @param {HTMLElement} paragraph
+ * @param {TextEditorStyles} defaults
+ * @param {TextEditorStyles} styles
+ * @returns {void}
+ */
+export function fixParagraph(paragraph, defaults, styles) {
+  if (paragraph.dataset.itype !== ContentType.PARAGRAPH) {
+    throw new Error('Trying to fix an invalid node (not a paragraph)')
+  }
+
+  if (paragraph.childNodes.length === 1
+   && isNode(paragraph.firstChild, Node.ELEMENT_NODE, "BR")) {
+    paragraph.replaceChildren(
+      createInlineElement(
+        [
+          document.createElement("br")
+        ],
+        createInlineElementStyleFromDefaults(defaults, styles)
+      )
+    );
+  } else if (paragraph.childNodes.length === 1
+    && isNode(paragraph.firstChild, Node.TEXT_NODE)) {
+    paragraph.replaceChildren(
+      createInlineElement(
+        [paragraph.firstChild.wholeText],
+        createInlineElementStyleFromDefaults(defaults, styles)
+      )
+    )
+  } else {
+    paragraph.childNodes.forEach((childNode) => {
+      if (
+        childNode.nodeType === Node.TEXT_NODE ||
+        !isNode(childNode.nodeType, Node.ELEMENT_NODE, "SPAN")
+      ) {
+        // Remove invalid nodes.
+        childNode.remove();
+      }
+    });
+  }
 }
 
 /**
@@ -933,10 +986,14 @@ export const Content = {
   createParagraphElement,
   createInlineElement,
 
+  fixParagraph,
+
   fromDOM,
   toDOM,
 
   getDefaults,
+
+  isNode,
 };
 
 export default Content;
