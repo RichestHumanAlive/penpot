@@ -308,7 +308,7 @@
   (ptk/reify ::update-text-attrs
     ptk/UpdateEvent
     (update [_ state]
-      (.postMessage #js {:type "update-text-attrs" :payload #js {:id id :attrs attrs}}  js/window)
+      (.postMessage #js {:type "update:update-text-attrs" :payload #js {:id id :attrs attrs}}  js/window)
       ;;
       (d/update-in-when state [:workspace-editor-state id] ted/update-editor-current-inline-styles attrs))
 
@@ -326,9 +326,13 @@
                           (cfh/text-shape? shape)  [id]
                           (cfh/group-shape? shape) (cfh/get-children-ids objects id))]
 <<<<<<< HEAD
+<<<<<<< HEAD
           (rx/of (dwsh/update-shapes shape-ids #(update-text-content % update-node? d/txt-merge attrs))))))))
 =======
           (.postMessage #js {:type })
+=======
+          (.postMessage #js {:type "watch:update-text-attrs"})
+>>>>>>> a3b3b557e (wip)
           (rx/of (dch/update-shapes shape-ids #(update-text-content % update-node? d/txt-merge attrs))))))))
 >>>>>>> 18a367b85 (wip)
 
