@@ -61,7 +61,7 @@
              modifiers    (get-in state [:workspace-text-modifier id])
              new-shape?   (nil? (:content shape))]
          (rx/of
-          (dch/update-shapes
+          (dwsh/update-shapes
            [id]
            (fn [shape]
              (let [{:keys [width height position-data]} modifiers]
@@ -325,16 +325,8 @@
               shape-ids (cond
                           (cfh/text-shape? shape)  [id]
                           (cfh/group-shape? shape) (cfh/get-children-ids objects id))]
-<<<<<<< HEAD
-<<<<<<< HEAD
-          (rx/of (dwsh/update-shapes shape-ids #(update-text-content % update-node? d/txt-merge attrs))))))))
-=======
-          (.postMessage #js {:type })
-=======
-          (.postMessage #js {:type "watch:update-text-attrs"})
->>>>>>> a3b3b557e (wip)
-          (rx/of (dch/update-shapes shape-ids #(update-text-content % update-node? d/txt-merge attrs))))))))
->>>>>>> 18a367b85 (wip)
+          (->> (rx/of (dwsh/update-shapes shape-ids #(update-text-content % update-node? d/txt-merge attrs)))
+               (rx/tap #(.postMessage #js {:type "watch:update-text-attrs"}))))))))
 
 (defn migrate-node
   [node]
