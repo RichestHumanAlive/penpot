@@ -13,6 +13,7 @@
    [app.common.flags :as flags]
    [app.common.spec :as us]
    [app.common.version :as v]
+   [app.util.overrides]
    [app.util.time :as dt]
    [clojure.core :as c]
    [clojure.java.io :as io]
@@ -21,18 +22,6 @@
    [cuerdas.core :as str]
    [datoteka.fs :as fs]
    [environ.core :refer [env]]))
-
-(prefer-method print-method
-               clojure.lang.IRecord
-               clojure.lang.IDeref)
-
-(prefer-method print-method
-               clojure.lang.IPersistentMap
-               clojure.lang.IDeref)
-
-(prefer-method pprint/simple-dispatch
-               clojure.lang.IPersistentMap
-               clojure.lang.IDeref)
 
 (def defaults
   {:database-uri "postgresql://postgres/penpot"
