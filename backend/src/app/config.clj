@@ -20,8 +20,7 @@
    [clojure.spec.alpha :as s]
    [cuerdas.core :as str]
    [datoteka.fs :as fs]
-   [environ.core :refer [env]]
-   [integrant.core :as ig]))
+   [environ.core :refer [env]]))
 
 (prefer-method print-method
                clojure.lang.IRecord
@@ -34,16 +33,6 @@
 (prefer-method pprint/simple-dispatch
                clojure.lang.IPersistentMap
                clojure.lang.IDeref)
-
-(defmethod ig/init-key :default
-  [_ data]
-  (d/without-nils data))
-
-(defmethod ig/prep-key :default
-  [_ data]
-  (if (map? data)
-    (d/without-nils data)
-    data))
 
 (def defaults
   {:database-uri "postgresql://postgres/penpot"
