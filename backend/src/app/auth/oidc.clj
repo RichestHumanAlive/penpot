@@ -620,30 +620,30 @@
                        :provider provider
                        :hint "provider not configured"))))))})
 
-(s/def ::client-id ::cf/oidc-client-id)
-(s/def ::client-secret ::cf/oidc-client-secret)
-(s/def ::base-uri ::cf/oidc-base-uri)
-(s/def ::token-uri ::cf/oidc-token-uri)
-(s/def ::auth-uri ::cf/oidc-auth-uri)
-(s/def ::user-uri ::cf/oidc-user-uri)
-(s/def ::scopes ::cf/oidc-scopes)
-(s/def ::roles ::cf/oidc-roles)
-(s/def ::roles-attr ::cf/oidc-roles-attr)
-(s/def ::email-attr ::cf/oidc-email-attr)
-(s/def ::name-attr ::cf/oidc-name-attr)
+;; (s/def ::client-id ::cf/oidc-client-id)
+;; (s/def ::client-secret ::cf/oidc-client-secret)
+;; (s/def ::base-uri ::cf/oidc-base-uri)
+;; (s/def ::token-uri ::cf/oidc-token-uri)
+;; (s/def ::auth-uri ::cf/oidc-auth-uri)
+;; (s/def ::user-uri ::cf/oidc-user-uri)
+;; (s/def ::scopes ::cf/oidc-scopes)
+;; (s/def ::roles ::cf/oidc-roles)
+;; (s/def ::roles-attr ::cf/oidc-roles-attr)
+;; (s/def ::email-attr ::cf/oidc-email-attr)
+;; (s/def ::name-attr ::cf/oidc-name-attr)
 
-(s/def ::provider
-  (s/keys :req-un [::client-id
-                   ::client-secret]
-          :opt-un [::base-uri
-                   ::token-uri
-                   ::auth-uri
-                   ::user-uri
-                   ::scopes
-                   ::roles
-                   ::roles-attr
-                   ::email-attr
-                   ::name-attr]))
+(s/def ::provider any?)
+  ;; (s/keys :req-un [::client-id
+  ;;                  ::client-secret]
+  ;;         :opt-un [::base-uri
+  ;;                  ::token-uri
+  ;;                  ::auth-uri
+  ;;                  ::user-uri
+  ;;                  ::scopes
+  ;;                  ::roles
+  ;;                  ::roles-attr
+  ;;                  ::email-attr
+  ;;                  ::name-attr]))
 
 (s/def ::providers (s/map-of ::us/keyword (s/nilable ::provider)))
 

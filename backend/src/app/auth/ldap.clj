@@ -103,31 +103,32 @@
                  :host (:host cfg) :port (:port cfg) :cause cause)
         nil))))
 
-(s/def ::enabled? ::us/boolean)
-(s/def ::host ::cf/ldap-host)
-(s/def ::port ::cf/ldap-port)
-(s/def ::ssl ::cf/ldap-ssl)
-(s/def ::tls ::cf/ldap-starttls)
-(s/def ::query ::cf/ldap-user-query)
-(s/def ::base-dn ::cf/ldap-base-dn)
-(s/def ::bind-dn ::cf/ldap-bind-dn)
-(s/def ::bind-password ::cf/ldap-bind-password)
-(s/def ::attrs-email ::cf/ldap-attrs-email)
-(s/def ::attrs-fullname ::cf/ldap-attrs-fullname)
-(s/def ::attrs-username ::cf/ldap-attrs-username)
+;; (s/def ::enabled? ::us/boolean)
+;; (s/def ::host ::cf/ldap-host)
+;; (s/def ::port ::cf/ldap-port)
+;; (s/def ::ssl ::cf/ldap-ssl)
+;; (s/def ::tls ::cf/ldap-starttls)
+;; (s/def ::query ::cf/ldap-user-query)
+;; (s/def ::base-dn ::cf/ldap-base-dn)
+;; (s/def ::bind-dn ::cf/ldap-bind-dn)
+;; (s/def ::bind-password ::cf/ldap-bind-password)
+;; (s/def ::attrs-email ::cf/ldap-attrs-email)
+;; (s/def ::attrs-fullname ::cf/ldap-attrs-fullname)
+;; (s/def ::attrs-username ::cf/ldap-attrs-username)
 
-(s/def ::provider-params
-  (s/keys :opt-un [::host ::port
-                   ::ssl ::tls
-                   ::enabled?
-                   ::bind-dn
-                   ::bind-password
-                   ::query
-                   ::attrs-email
-                   ::attrs-username
-                   ::attrs-fullname]))
-(s/def ::provider
-  (s/nilable ::provider-params))
+;; (s/def ::provider-params
+;;   (s/keys :opt-un [::host ::port
+;;                    ::ssl ::tls
+;;                    ::enabled?
+;;                    ::bind-dn
+;;                    ::bind-password
+;;                    ::query
+;;                    ::attrs-email
+;;                    ::attrs-username
+;;                    ::attrs-fullname]))
+
+(s/def ::provider any?)
+  ;; (s/nilable ::provider-params))
 
 (defmethod ig/pre-init-spec ::provider
   [_]

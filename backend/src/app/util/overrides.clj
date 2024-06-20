@@ -7,7 +7,10 @@
 (ns app.util.overrides
   "A utility ns for declare default overrides over clojure runtime"
   (:require
-   [clojure.pprint :as pprint]))
+   [app.common.schema :as sm]
+   [app.common.schema.openapi :as-alias oapi]
+   [clojure.pprint :as pprint]
+   [datoteka.fs :as fs]))
 
 (prefer-method print-method
                clojure.lang.IRecord
@@ -20,3 +23,16 @@
 (prefer-method pprint/simple-dispatch
                clojure.lang.IPersistentMap
                clojure.lang.IDeref)
+
+(sm/register! ::fs/path
+  {:type ::fs/path
+   :pred fs/path?
+   :type-properties
+   {:title "path"
+    :description "Filesystem Path instance"
+    :error/message "invalid path"
+    :error/code "errors.invalid-path"
+    ::oapi/type "string"
+    ::oapi/format "kakota"
+    ::oapi/decode (fn [value]
+                    (fs/path value))}})
