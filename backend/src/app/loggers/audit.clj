@@ -90,8 +90,9 @@
   "Extract default context properties from RPC params object"
   [params]
   (d/without-nils
-   {:external-session-id (::rpc/external-session-id params)
-    :event-origin (::rpc/handler-name params)}))
+    {:external-session-id (::rpc/external-session-id params)
+     :event-origin (::rpc/external-event-origin params)
+     :triggered-by (::rpc/handler-name params)}))
 
 ;; --- SPECS
 
@@ -143,22 +144,24 @@
   (let [resultm    (meta result)
         request    (-> params meta ::http/request)
         profile-id (or (::profile-id resultm)
-                       (:profile-id result)
-                       (::rpc/profile-id params)
-                       uuid/zero)
+                     (:profile-id result)
+                     (::rpc/profile-id params)
+                     uuid/zero)
 
-        session-id (get params ::rpc/external-session-id)
-        props      (-> (or (::replace-props resultm)
+        session-id   (get params ::rpc/external-session-id)
+        event-origin (get params ::rpc/external-event-origin)
+        props        (-> (or (::replace-props resultm)
                            (-> params
                                (merge (::props resultm))
                                (dissoc :profile-id)
                                (dissoc :type)))
 
-                       (clean-props))
+                         (clean-props))
 
         token-id  (::actoken/id request)
         context   (-> (::context resultm)
                       (assoc :external-session-id session-id)
+                      (assoc :external-event-origin event-origin)
                       (assoc :access-token-id (some-> token-id str))
                       (d/without-nils))]
 

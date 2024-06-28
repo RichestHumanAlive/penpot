@@ -77,14 +77,16 @@
   (let [handler-name (:type path-params)
         etag         (rreq/get-header request "if-none-match")
         profile-id   (or (::session/profile-id request)
-                         (::actoken/profile-id request))
+                       (::actoken/profile-id request))
 
         session-id   (rreq/get-header request "x-external-session-id")
+        event-origin (rreq/get-header request "x-event-origin")
 
         data         (-> params
                          (assoc ::handler-name handler-name)
                          (assoc ::request-at (dt/now))
                          (assoc ::external-session-id session-id)
+                         (assoc ::external-event-origin event-origin)
                          (assoc ::session/id (::session/id request))
                          (assoc ::cond/key etag)
                          (cond-> (uuid? profile-id)

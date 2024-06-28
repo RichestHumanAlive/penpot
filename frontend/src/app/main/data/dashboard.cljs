@@ -553,12 +553,13 @@
        :resend resend?})
 
     ptk/WatchEvent
-    (watch [_ _ _]
+    (watch [it _ _]
       (let [{:keys [on-success on-error]
              :or {on-success identity
                   on-error rx/throw}} (meta params)
             params (dissoc params :resend?)]
-        (->> (rp/cmd! :create-team-invitations params)
+        (println "xxxx" (meta it))
+        (->> (rp/cmd! :create-team-invitations (with-meta params (meta it)))
              (rx/tap on-success)
              (rx/catch on-error))))))
 
