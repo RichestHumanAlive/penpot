@@ -77,7 +77,7 @@
   (let [handler-name (:type path-params)
         etag         (rreq/get-header request "if-none-match")
         profile-id   (or (::session/profile-id request)
-                       (::actoken/profile-id request))
+                         (::actoken/profile-id request))
 
         session-id   (rreq/get-header request "x-external-session-id")
         event-origin (rreq/get-header request "x-event-origin")
