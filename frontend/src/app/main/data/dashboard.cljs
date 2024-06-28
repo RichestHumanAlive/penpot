@@ -421,7 +421,7 @@
   [{:keys [name emails role] :as params}]
   (ptk/reify ::create-team-with-invitations
     ptk/WatchEvent
-    (watch [_ state _]
+    (watch [it state _]
       (let [{:keys [on-success on-error]
              :or {on-success identity
                   on-error rx/throw}} (meta params)
@@ -430,7 +430,7 @@
                       :emails emails
                       :role role
                       :features features}]
-        (->> (rp/cmd! :create-team-with-invitations params)
+        (->> (rp/cmd! :create-team-with-invitations (with-meta params (meta it)))
              (rx/tap on-success)
              (rx/map team-created)
              (rx/catch on-error))))))
@@ -558,7 +558,6 @@
              :or {on-success identity
                   on-error rx/throw}} (meta params)
             params (dissoc params :resend?)]
-        (println "xxxx" (meta it))
         (->> (rp/cmd! :create-team-invitations (with-meta params (meta it)))
              (rx/tap on-success)
              (rx/catch on-error))))))
