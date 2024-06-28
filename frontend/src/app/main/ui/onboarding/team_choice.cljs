@@ -114,6 +114,7 @@
          (fn [{:keys [name] :as params}]
            (let [mdata  {:on-success on-success
                          :on-error   on-error}]
+
              (st/emit! (-> (dd/create-team-with-invitations (with-meta params mdata))
                            (with-meta {::ev/origin :onboarding}))
                        (ptk/data-event ::ev/event
