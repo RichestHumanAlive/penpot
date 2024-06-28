@@ -405,12 +405,13 @@
   (dm/assert! (string? name))
   (ptk/reify ::create-team
     ptk/WatchEvent
-    (watch [_ state _]
+    (watch [it state _]
       (let [{:keys [on-success on-error]
              :or {on-success identity
                   on-error rx/throw}} (meta params)
-            features (features/get-enabled-features state)]
-        (->> (rp/cmd! :create-team {:name name :features features})
+            features (features/get-enabled-features state)
+            params {:name name :features features}]
+        (->> (rp/cmd! :create-team (with-meta params (meta it)))
              (rx/tap on-success)
              (rx/map team-created)
              (rx/catch on-error))))))
