@@ -21,7 +21,7 @@ goog.scope(function () {
     return [...range.getClientRects()].filter((r) => r.width > 0);
   }
 
-  self.parse_text_nodes = function(parent, textNode, textAlign) {
+  self.parse_text_nodes = function (parent, textNode, textAlign) {
     const content = textNode.textContent;
     const textSize = content.length;
 
@@ -44,14 +44,13 @@ goog.scope(function () {
         from++;
         to++;
         safeguard = false;
-
       } else if (rects.length > 1 || splitByWords) {
         const position = prevRect;
 
         result.push({
           node: parent,
           position: position,
-          text: current
+          text: current,
         });
 
         if (splitByWords) {
@@ -71,7 +70,7 @@ goog.scope(function () {
 
     // to == textSize
     const rects = getRangeRects(textNode, from, to);
-    result.push({node: parent, position: rects[0], text: current});
+    result.push({ node: parent, position: rects[0], text: current });
     return result;
   };
 });

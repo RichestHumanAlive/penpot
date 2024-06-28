@@ -13,7 +13,7 @@
 
 goog.provide("app.util.path.path_impl_simplify");
 
-goog.scope(function() {
+goog.scope(function () {
   const self = app.util.path.path_impl_simplify;
 
   // square distance between 2 points
@@ -36,7 +36,6 @@ goog.scope(function() {
       if (t > 1) {
         x = p2.x;
         y = p2.y;
-
       } else if (t > 0) {
         x += dx * t;
         y += dy * t;

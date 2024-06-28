@@ -13,7 +13,7 @@
 goog.provide("app.util.heap_impl");
 goog.provide("app.util.heap_impl.MinHeap");
 
-goog.scope(function() {
+goog.scope(function () {
   const self = app.util.heap_impl;
 
   const compare = (x, y) => x - y;
@@ -26,19 +26,19 @@ goog.scope(function() {
     }
 
     insert(item) {
-      const heap  = this.heap;
+      const heap = this.heap;
 
       let index = this.size++;
-      let parent = (index-1)>>1;
+      let parent = (index - 1) >> 1;
 
       heap[index] = item;
 
-      while ((index > 0) && this.cmp(heap[parent], item) > 0) {
+      while (index > 0 && this.cmp(heap[parent], item) > 0) {
         const tmp = heap[parent];
         heap[parent] = heap[index];
         heap[index] = tmp;
         index = parent;
-        parent = (index-1)>>1;
+        parent = (index - 1) >> 1;
       }
     }
 
@@ -85,16 +85,18 @@ goog.scope(function() {
       heap[this.size] = null;
 
       while (true) {
-
-      const leftIndex = (index<<1)+1;
-        const rightIndex = (index<<1)+2;
+        const leftIndex = (index << 1) + 1;
+        const rightIndex = (index << 1) + 2;
         let minIndex = index;
 
         if (leftIndex < this.size && cmp(heap[leftIndex], heap[minIndex]) < 0) {
           minIndex = leftIndex;
         }
 
-        if (rightIndex < this.size && cmp(heap[rightIndex], heap[minIndex]) < 0) {
+        if (
+          rightIndex < this.size &&
+          cmp(heap[rightIndex], heap[minIndex]) < 0
+        ) {
           minIndex = rightIndex;
         }
 

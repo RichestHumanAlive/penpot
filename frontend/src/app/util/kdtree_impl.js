@@ -18,7 +18,7 @@ goog.require("app.util.heap_impl");
 goog.require("app.util.lru_impl");
 goog.require("goog.asserts");
 
-goog.scope(function() {
+goog.scope(function () {
   const self = app.util.kdtree_impl;
 
   const heap = app.util.heap_impl;
@@ -50,8 +50,8 @@ goog.scope(function() {
     return parseFloat(v.toFixed(6));
   }
 
-  function calculateDistance(a, b){
-    return Math.sqrt(Math.pow(a[0] - b[0], 2) +  Math.pow(a[1] - b[1], 2));
+  function calculateDistance(a, b) {
+    return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2));
   }
 
   function buildTree(parent, points, depth) {
@@ -141,7 +141,7 @@ goog.scope(function() {
     const best = search(null, root);
     const result = [];
 
-    for (let i=0; i < (Math.min(maxNodes, best.size)); i++) {
+    for (let i = 0; i < Math.min(maxNodes, best.size); i++) {
       result.push(best.removeHead());
     }
 
@@ -152,12 +152,12 @@ goog.scope(function() {
   const cache = new lru.create();
 
   function generate(width, height, widthStep, heightStep) {
-    const totalSize = Math.floor((width/widthStep) * (height/heightStep));
+    const totalSize = Math.floor((width / widthStep) * (height / heightStep));
     const points = new Array(totalSize);
     let pos = 0;
 
-    for (let i = 0; i <= width; i += widthStep){
-      for (let z = 0; z <= height; z += heightStep){
+    for (let i = 0; i <= width; i += widthStep) {
+      for (let z = 0; z <= height; z += heightStep) {
         points[pos++] = [i, z];
       }
     }
@@ -200,7 +200,7 @@ goog.scope(function() {
     } else {
       return tree;
     }
-  };
+  }
 
   function clear(tree) {
     assert(tree instanceof KDTree);

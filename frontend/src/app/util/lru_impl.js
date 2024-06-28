@@ -13,7 +13,7 @@
 goog.provide("app.util.lru_impl");
 goog.require("goog.asserts");
 
-goog.scope(function() {
+goog.scope(function () {
   const self = app.util.lru_impl;
   const assert = goog.asserts.assert;
 
@@ -29,8 +29,8 @@ goog.scope(function() {
 
   class Cache {
     constructor(limit) {
-      assert(goog.isNumber(limit), "`limit` should be a number")
-      this.limit = limit
+      assert(goog.isNumber(limit), "`limit` should be a number");
+      this.limit = limit;
       this.clear();
     }
 

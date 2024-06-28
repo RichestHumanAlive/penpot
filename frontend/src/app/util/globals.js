@@ -17,7 +17,7 @@
 
 goog.provide("app.util.globals");
 
-goog.scope(function() {
+goog.scope(function () {
   app.util.globals.global = goog.global;
 
   function createGlobalEventEmitter(k) {
@@ -25,18 +25,14 @@ goog.scope(function() {
      * may subscribe to them.
      */
     return {
-      addListener(...args) {
-      },
-      removeListener(...args) {
-      },
-      addEventListener(...args) {
-      },
-      removeEventListener(...args) {
-      }
-    }
+      addListener(...args) {},
+      removeListener(...args) {},
+      addEventListener(...args) {},
+      removeEventListener(...args) {},
+    };
   }
 
-  app.util.globals.window = (function() {
+  app.util.globals.window = (function () {
     if (typeof goog.global.window !== "undefined") {
       return goog.global.window;
     } else {
@@ -44,7 +40,7 @@ goog.scope(function() {
     }
   })();
 
-  app.util.globals.document = (function() {
+  app.util.globals.document = (function () {
     if (typeof goog.global.document !== "undefined") {
       return goog.global.document;
     } else {
@@ -52,7 +48,7 @@ goog.scope(function() {
     }
   })();
 
-  app.util.globals.location = (function() {
+  app.util.globals.location = (function () {
     if (typeof goog.global.location !== "undefined") {
       return goog.global.location;
     } else {
@@ -60,7 +56,7 @@ goog.scope(function() {
     }
   })();
 
-  app.util.globals.navigator = (function() {
+  app.util.globals.navigator = (function () {
     if (typeof goog.global.navigator !== "undefined") {
       return goog.global.navigator;
     } else {
@@ -68,12 +64,11 @@ goog.scope(function() {
     }
   })();
 
-  app.util.globals.FormData = (function() {
+  app.util.globals.FormData = (function () {
     if (typeof goog.global.FormData !== "undefined") {
       return goog.global.FormData;
     } else {
-      return function() {};
+      return function () {};
     }
   })();
 });
-

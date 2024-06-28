@@ -11,7 +11,7 @@ goog.provide("app.util.intervaltree_impl");
 goog.require("goog.asserts");
 goog.require("goog.array");
 
-goog.scope(function() {
+goog.scope(function () {
   const self = app.util.intervaltree_impl;
 
   const assert = goog.asserts.assert;
@@ -52,9 +52,9 @@ goog.scope(function() {
 
   // --- Private Api (Implementation)
 
-  const nextId = (function() {
+  const nextId = (function () {
     let counter = 0;
-    return function() {
+    return function () {
       return counter++;
     };
   })();
@@ -64,8 +64,10 @@ goog.scope(function() {
       return node;
     }
 
-    if (root.interval.start === node.interval.start &&
-        root.interval.end == node.interval.end) {
+    if (
+      root.interval.start === node.interval.start &&
+      root.interval.end == node.interval.end
+    ) {
       return root;
     }
 
@@ -103,9 +105,10 @@ goog.scope(function() {
   function removeInterval(root, index, interval) {
     if (root === null) {
       return root;
-    } else if (root.interval.start === interval.start &&
-               root.interval.end === interval.end) {
-
+    } else if (
+      root.interval.start === interval.start &&
+      root.interval.end === interval.end
+    ) {
       // Remove interval from the index.
       const intervalId = root.interval[ID_SYM];
       index.delete(intervalId);
@@ -151,13 +154,13 @@ goog.scope(function() {
 
   function calculateMaxEnd(node) {
     const left = node.left ? node.left.maxEnd : 0;
-    const right = node.right ? node.right.maxEnd: 0;
+    const right = node.right ? node.right.maxEnd : 0;
     return Math.max(node.interval.end, Math.max(left, right));
   }
 
   function calculateHeight(node) {
     const left = node.left ? node.left.height : 0;
-    const right = node.right ? node.right.height: 0;
+    const right = node.right ? node.right.height : 0;
     return Math.max(left, right) + 1;
   }
 
@@ -166,8 +169,8 @@ goog.scope(function() {
       return 0;
     }
 
-    const left = node.left ? node.left.height: 0;
-    const right = node.right ? node.right.height: 0;
+    const left = node.left ? node.left.height : 0;
+    const right = node.right ? node.right.height : 0;
     return left - right;
   }
 
@@ -214,8 +217,7 @@ goog.scope(function() {
   }
 
   function containsPoint(root, point) {
-    if (root.interval.start <= point &&
-        root.interval.end >= point) {
+    if (root.interval.start <= point && root.interval.end >= point) {
       return true;
     } else {
       let result = false;
@@ -233,10 +235,12 @@ goog.scope(function() {
   }
 
   function isIntervalIntersect(a, b) {
-    return ((a.start <= b.start && a.end >= b.start) ||
-            (a.start <= b.end && a.end >= b.end) ||
-            (b.start <= a.start && b.end >= a.start) ||
-            (b.start <= a.end && b.end >= a.end));
+    return (
+      (a.start <= b.start && a.end >= b.start) ||
+      (a.start <= b.end && a.end >= b.end) ||
+      (b.start <= a.start && b.end >= a.start) ||
+      (b.start <= a.end && b.end >= a.end)
+    );
   }
 
   function searchSingleInterval(root, interval) {
@@ -281,10 +285,9 @@ goog.scope(function() {
 
   function createInterval(value) {
     if (value instanceof Interval) {
-      return value
+      return value;
     } else if (goog.isArray(value)) {
-      if (value.length === 1 &&
-          goog.isNumber(value[0])) {
+      if (value.length === 1 && goog.isNumber(value[0])) {
         return new Interval(value[0], value[0]);
       } else if (value.length === 2 && goog.isNumber(value[0])) {
         if (goog.isNumber(value[1])) {
@@ -292,9 +295,11 @@ goog.scope(function() {
         } else {
           return new Interval(value[0], value[0], value[1]);
         }
-      } else if (value.length === 3 &&
-                 goog.isNumber(value[0]) &&
-                 goog.isNumber(value[1])) {
+      } else if (
+        value.length === 3 &&
+        goog.isNumber(value[0]) &&
+        goog.isNumber(value[1])
+      ) {
         return new Interval(value[0], value[1], value[2]);
       }
     } else if (arguments.length === 1 && goog.isNumber(value)) {
@@ -308,7 +313,7 @@ goog.scope(function() {
     } else {
       throw new Error("Unexpected input.");
     }
-  };
+  }
 
   // --- Public Api
 
@@ -316,7 +321,7 @@ goog.scope(function() {
     const tree = new IntervalTree();
 
     if (goog.isArray(items)) {
-      for(let item of items) {
+      for (let item of items) {
         tree.add(item);
       }
     }
@@ -395,16 +400,20 @@ goog.scope(function() {
   self.searchSingle = searchSingle;
 
   // Test
-  self.test = function() {
+  self.test = function () {
     // const util = require('util');
 
     console.time("init");
     const tree = self.create([
-      [1,5], [-5, 10], [4, 9],
-      [10,14], [-10, 1], [9, 22],
+      [1, 5],
+      [-5, 10],
+      [4, 9],
+      [10, 14],
+      [-10, 1],
+      [9, 22],
     ]);
     console.timeEnd("init");
-    console.dir(tree, { depth: 5});
+    console.dir(tree, { depth: 5 });
 
     const n = 2;
     console.time("search");
@@ -421,5 +430,4 @@ goog.scope(function() {
 
     // console.dir(tree, { depth: 5});
   };
-
 });

@@ -34,7 +34,7 @@
 goog.provide("app.util.quadtree");
 goog.require("cljs.core");
 
-goog.scope(function() {
+goog.scope(function () {
   const self = app.util.quadtree;
   const eq = cljs.core._EQ_;
   const contains = cljs.core.contains_QMARK_;
@@ -60,53 +60,73 @@ goog.scope(function() {
     }
 
     split() {
-      const nextLevel   = this.level + 1;
-      const subWidth    = this.bounds.width/2;
-      const subHeight   = this.bounds.height/2;
-      const x           = this.bounds.x;
-      const y           = this.bounds.y;
+      const nextLevel = this.level + 1;
+      const subWidth = this.bounds.width / 2;
+      const subHeight = this.bounds.height / 2;
+      const x = this.bounds.x;
+      const y = this.bounds.y;
 
       //top right node
-      this.indexes[0] = new Quadtree({
-        x       : x + subWidth,
-        y       : y,
-        width   : subWidth,
-        height  : subHeight
-      }, this.maxObjects, this.maxLevels, nextLevel);
+      this.indexes[0] = new Quadtree(
+        {
+          x: x + subWidth,
+          y: y,
+          width: subWidth,
+          height: subHeight,
+        },
+        this.maxObjects,
+        this.maxLevels,
+        nextLevel,
+      );
 
       //top left node
-      this.indexes[1] = new Quadtree({
-        x       : x,
-        y       : y,
-        width   : subWidth,
-        height  : subHeight
-      }, this.maxObjects, this.maxLevels, nextLevel);
+      this.indexes[1] = new Quadtree(
+        {
+          x: x,
+          y: y,
+          width: subWidth,
+          height: subHeight,
+        },
+        this.maxObjects,
+        this.maxLevels,
+        nextLevel,
+      );
 
       //bottom left node
-      this.indexes[2] = new Quadtree({
-        x       : x,
-        y       : y + subHeight,
-        width   : subWidth,
-        height  : subHeight
-      }, this.maxObjects, this.maxLevels, nextLevel);
+      this.indexes[2] = new Quadtree(
+        {
+          x: x,
+          y: y + subHeight,
+          width: subWidth,
+          height: subHeight,
+        },
+        this.maxObjects,
+        this.maxLevels,
+        nextLevel,
+      );
 
       //bottom right node
-      this.indexes[3] = new Quadtree({
-        x       : x + subWidth,
-        y       : y + subHeight,
-        width   : subWidth,
-        height  : subHeight
-      }, this.maxObjects, this.maxLevels, nextLevel);
+      this.indexes[3] = new Quadtree(
+        {
+          x: x + subWidth,
+          y: y + subHeight,
+          width: subWidth,
+          height: subHeight,
+        },
+        this.maxObjects,
+        this.maxLevels,
+        nextLevel,
+      );
     }
 
     *getIndexes(rect) {
-      const verticalMidpoint    = this.bounds.x + (this.bounds.width/2);
-      const horizontalMidpoint  = this.bounds.y + (this.bounds.height/2);
+      const verticalMidpoint = this.bounds.x + this.bounds.width / 2;
+      const horizontalMidpoint = this.bounds.y + this.bounds.height / 2;
 
       const startIsNorth = rect.y < horizontalMidpoint;
-      const startIsWest  = rect.x < verticalMidpoint;
-      const endIsEast    = rect.x + rect.width > verticalMidpoint;
-      const endIsSouth   = rect.y + rect.height > horizontalMidpoint;
+      const startIsWest = rect.x < verticalMidpoint;
+      const endIsEast = rect.x + rect.width > verticalMidpoint;
+      const endIsSouth = rect.y + rect.height > horizontalMidpoint;
 
       //top-right quad
       if (startIsNorth && endIsEast) {
@@ -115,7 +135,7 @@ goog.scope(function() {
 
       //top-left quad
       if (startIsWest && startIsNorth) {
-        yield this.indexes[1]
+        yield this.indexes[1];
       }
 
       //bottom-left quad
@@ -140,9 +160,10 @@ goog.scope(function() {
         this.objects.push(node);
 
         // max objects reached
-        if (this.objects.length > this.maxObjects
-            && this.level < this.maxLevels) {
-
+        if (
+          this.objects.length > this.maxObjects &&
+          this.level < this.maxLevels
+        ) {
           //split if we don't already have subindexes
           if (this.indexes.length === 0) {
             this.split();
@@ -193,22 +214,22 @@ goog.scope(function() {
     }
   }
 
-  self.create = function(rect) {
+  self.create = function (rect) {
     return new Quadtree(rect, 10, 4, 0);
   };
 
-  self.insert = function(index, id, bounds, data) {
+  self.insert = function (index, id, bounds, data) {
     const node = new Node(id, bounds, data);
     index.insert(node);
     return index;
   };
 
-  self.clear = function(index) {
+  self.clear = function (index) {
     index.clear();
     return index;
   };
 
-  self.search = function*(index, rect) {
+  self.search = function* (index, rect) {
     const tmp = new Set();
     for (const item of index.search(rect)) {
       if (!tmp.has(item)) {
@@ -218,7 +239,7 @@ goog.scope(function() {
     }
   };
 
-  self.remove = function(index, id) {
+  self.remove = function (index, id) {
     const result = self.create(index.bounds);
 
     for (let node of index.objects) {
@@ -228,10 +249,10 @@ goog.scope(function() {
     }
 
     return result;
-  }
+  };
 
   // FIXME: Inefficient to recreate the index. Needs to be improved
-  self.remove_all = function(index, ids) {
+  self.remove_all = function (index, ids) {
     const result = self.create(index.bounds);
 
     for (let node of self.search(index, index.bounds)) {
@@ -241,6 +262,5 @@ goog.scope(function() {
     }
 
     return result;
-  }
-
+  };
 });

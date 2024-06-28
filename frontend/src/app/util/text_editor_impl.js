@@ -6,7 +6,7 @@
  * Copyright (c) KALEIDOS INC
  */
 
-'use strict';
+"use strict";
 
 import {
   BlockMapBuilder,
@@ -18,8 +18,8 @@ import {
   SelectionState,
 } from "draft-js";
 
-import DraftPasteProcessor from 'draft-js/lib/DraftPasteProcessor';
-import {Map, OrderedSet} from "immutable";
+import DraftPasteProcessor from "draft-js/lib/DraftPasteProcessor";
+import { Map, OrderedSet } from "immutable";
 
 function isDefined(v) {
   return v !== undefined && v !== null;
@@ -38,7 +38,7 @@ function mergeBlockData(block, newData) {
   }
 
   return block.mergeDeep({
-    data: data
+    data: data,
   });
 }
 
@@ -54,13 +54,13 @@ export function createDecorator(type, component) {
   const strategy = (block, callback, content) => {
     return block.findEntityRanges((cmeta) => {
       const entityKey = cmeta.getEntity();
-      return isDefined(entityKey) && (type === content.getEntity(entityKey).getType());
+      return (
+        isDefined(entityKey) && type === content.getEntity(entityKey).getType()
+      );
     }, callback);
   };
 
-  return new CompositeDecorator([
-    {"strategy": strategy, "component": component}
-  ]);
+  return new CompositeDecorator([{ strategy: strategy, component: component }]);
 }
 
 function getSelectAllSelection(state) {
@@ -69,10 +69,10 @@ function getSelectAllSelection(state) {
   const lastBlock = content.getBlockMap().last();
 
   return new SelectionState({
-    "anchorKey": firstBlock.getKey(),
-    "anchorOffset": 0,
-    "focusKey": lastBlock.getKey(),
-    "focusOffset": lastBlock.getLength()
+    anchorKey: firstBlock.getKey(),
+    anchorOffset: 0,
+    focusKey: lastBlock.getKey(),
+    focusOffset: lastBlock.getLength(),
   });
 }
 
@@ -81,10 +81,10 @@ function getCursorInEndPosition(state) {
   const lastBlock = content.getBlockMap().last();
 
   return new SelectionState({
-    "anchorKey": lastBlock.getKey(),
-    "anchorOffset": lastBlock.getLength(),
-    "focusKey": lastBlock.getKey(),
-    "focusOffset": lastBlock.getLength()
+    anchorKey: lastBlock.getKey(),
+    anchorOffset: lastBlock.getLength(),
+    focusKey: lastBlock.getKey(),
+    focusOffset: lastBlock.getLength(),
   });
 }
 
@@ -97,16 +97,21 @@ function modifySelectedBlocks(contentState, selectionState, operation) {
   var endKey = selectionState.getEndKey();
   var blockMap = contentState.getBlockMap();
 
-  var newBlocks = blockMap.toSeq().skipUntil(function (_, k) {
-    return k === startKey;
-  }).takeUntil(function (_, k) {
-    return k === endKey;
-  }).concat(Map([[endKey, blockMap.get(endKey)]])).map(operation);
+  var newBlocks = blockMap
+    .toSeq()
+    .skipUntil(function (_, k) {
+      return k === startKey;
+    })
+    .takeUntil(function (_, k) {
+      return k === endKey;
+    })
+    .concat(Map([[endKey, blockMap.get(endKey)]]))
+    .map(operation);
 
   return contentState.merge({
-    "blockMap": blockMap.merge(newBlocks),
-    "selectionBefore": selectionState,
-    "selectionAfter": selectionState
+    blockMap: blockMap.merge(newBlocks),
+    selectionBefore: selectionState,
+    selectionAfter: selectionState,
   });
 }
 
@@ -128,13 +133,13 @@ function addStylesToOverride(styles, other) {
     const [p, k, v] = style.split("$$$");
     const prefix = [p, k, ""].join("$$$");
 
-    const curValue = result.find((it) => it.startsWith(prefix))
+    const curValue = result.find((it) => it.startsWith(prefix));
     if (curValue) {
       result = result.remove(curValue);
     }
     result = result.add(style);
   }
-  return result
+  return result;
 }
 
 export function applyInlineStyle(state, styles) {
@@ -144,7 +149,7 @@ export function applyInlineStyle(state, styles) {
 
   if (selection.isCollapsed()) {
     const currentOverride = state.getCurrentInlineStyle() || new OrderedSet();
-    const styleOverride = addStylesToOverride(currentOverride, styles)
+    const styleOverride = addStylesToOverride(currentOverride, styles);
     return EditorState.setInlineStyleOverride(state, styleOverride);
   }
 
@@ -173,7 +178,9 @@ export function splitBlockPreservingData(state) {
 
   content = Modifier.splitBlock(content, selection);
 
-  const blockData = content.blockMap.get(content.selectionBefore.getStartKey()).getData();
+  const blockData = content.blockMap
+    .get(content.selectionBefore.getStartKey())
+    .getData();
   const blockKey = content.selectionAfter.getStartKey();
   const blockMap = content.blockMap.update(blockKey, (block) => {
     return block.set("data", blockData);
@@ -222,37 +229,48 @@ export function getCurrentEntityKey(state) {
   return block.getEntityAt(startOffset);
 }
 
-export function removeInlineStylePrefix(contentState, selectionState, stylePrefix) {
+export function removeInlineStylePrefix(
+  contentState,
+  selectionState,
+  stylePrefix,
+) {
   const startKey = selectionState.getStartKey();
   const startOffset = selectionState.getStartOffset();
   const endKey = selectionState.getEndKey();
   const endOffset = selectionState.getEndOffset();
 
-  return modifySelectedBlocks(contentState, selectionState, (block, blockKey) => {
-    let sliceStart;
-    let sliceEnd;
+  return modifySelectedBlocks(
+    contentState,
+    selectionState,
+    (block, blockKey) => {
+      let sliceStart;
+      let sliceEnd;
 
-    if (startKey === endKey) {
-      sliceStart = startOffset;
-      sliceEnd = endOffset;
-    } else {
-      sliceStart = blockKey === startKey ? startOffset : 0;
-      sliceEnd = blockKey === endKey ? endOffset : block.getLength();
-    }
+      if (startKey === endKey) {
+        sliceStart = startOffset;
+        sliceEnd = endOffset;
+      } else {
+        sliceStart = blockKey === startKey ? startOffset : 0;
+        sliceEnd = blockKey === endKey ? endOffset : block.getLength();
+      }
 
-    let chars = block.getCharacterList();
-    let current;
+      let chars = block.getCharacterList();
+      let current;
 
-    while (sliceStart < sliceEnd) {
-      current = chars.get(sliceStart);
-      current = current.set("style", current.getStyle().filter((s) => !s.startsWith(stylePrefix)))
-      chars = chars.set(sliceStart, CharacterMetadata.create(current));
+      while (sliceStart < sliceEnd) {
+        current = chars.get(sliceStart);
+        current = current.set(
+          "style",
+          current.getStyle().filter((s) => !s.startsWith(stylePrefix)),
+        );
+        chars = chars.set(sliceStart, CharacterMetadata.create(current));
 
-      sliceStart++;
-    }
+        sliceStart++;
+      }
 
-    return block.set("characterList", chars);
-  });
+      return block.set("characterList", chars);
+    },
+  );
 }
 
 export function cursorToEnd(state) {
@@ -291,7 +309,7 @@ export function getSelectedBlocks(state) {
   const startKey = selection.getStartKey();
   const endKey = selection.getEndKey();
   const content = state.getCurrentContent();
-  const result = [ startKey ];
+  const result = [startKey];
 
   let currentKey = startKey;
 
@@ -328,10 +346,10 @@ export function updateBlockData(state, blockKey, data) {
   const newContent = Modifier.setBlockData(
     state.getCurrentContent(),
     SelectionState.createEmpty(blockKey),
-    blockData
+    blockData,
   );
 
-  let result = EditorState.push(state, newContent, 'change-block-data');
+  let result = EditorState.push(state, newContent, "change-block-data");
   result = EditorState.acceptSelection(result, userSelection);
   result = EditorState.setInlineStyleOverride(result, inlineStyleOverride);
   return result;
@@ -349,7 +367,7 @@ export function selectBlock(state, blockKey) {
   const block = state.getCurrentContent().getBlockForKey(blockKey);
   const length = block.getText().length;
   const selection = SelectionState.createEmpty(blockKey).merge({
-    focusOffset: length
+    focusOffset: length,
   });
   return EditorState.acceptSelection(state, selection);
 }
@@ -369,7 +387,9 @@ function splitTextIntoTextBlocks(text) {
 export function insertText(state, text, attrs, inlineStyles) {
   const blocks = splitTextIntoTextBlocks(text);
 
-  const character = CharacterMetadata.create({style: OrderedSet(inlineStyles)});
+  const character = CharacterMetadata.create({
+    style: OrderedSet(inlineStyles),
+  });
 
   let blockArray = DraftPasteProcessor.processText(
     blocks,
@@ -378,21 +398,17 @@ export function insertText(state, text, attrs, inlineStyles) {
   );
 
   blockArray = blockArray.map((b) => {
-      return mergeBlockData(b, attrs);
+    return mergeBlockData(b, attrs);
   });
 
   const fragment = BlockMapBuilder.createFromArray(blockArray);
   const content = state.getCurrentContent();
   const selection = state.getSelection();
 
-  const newContent = Modifier.replaceWithFragment(
-    content,
-    selection,
-    fragment
-  );
+  const newContent = Modifier.replaceWithFragment(content, selection, fragment);
 
   const resultSelection = SelectionState.createEmpty(selection.getStartKey());
-  return EditorState.push(state, newContent, 'insert-fragment');
+  return EditorState.push(state, newContent, "insert-fragment");
 }
 
 export function setInlineStyleOverride(state, inlineStyles) {
@@ -400,9 +416,11 @@ export function setInlineStyleOverride(state, inlineStyles) {
 }
 
 export function selectionEquals(selection, other) {
-  return selection.getAnchorKey() === other.getAnchorKey() &&
+  return (
+    selection.getAnchorKey() === other.getAnchorKey() &&
     selection.getAnchorOffset() === other.getAnchorOffset() &&
     selection.getFocusKey() === other.getFocusKey() &&
     selection.getFocusOffset() === other.getFocusOffset() &&
-    selection.getIsBackward() === other.getIsBackward();
+    selection.getIsBackward() === other.getIsBackward()
+  );
 }
